@@ -2,6 +2,9 @@ import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import DashboardShell from "@/components/DashboardShell";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 export default async function DashboardLayout({
   children,
 }: {
