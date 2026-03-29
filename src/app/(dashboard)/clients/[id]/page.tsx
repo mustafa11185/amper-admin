@@ -1562,8 +1562,11 @@ function DeleteClientSection({ clientId, clientName }: { clientId: string; clien
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
 
+  const nameMatch = confirmText.trim() === clientName.trim() ||
+    confirmText.trim().toLowerCase() === clientName.trim().toLowerCase();
+
   const handleDelete = async () => {
-    if (confirmText !== clientName) {
+    if (!nameMatch) {
       toast.error("يرجى كتابة اسم العميل بشكل صحيح");
       return;
     }
@@ -1612,13 +1615,17 @@ function DeleteClientSection({ clientId, clientName }: { clientId: string; clien
               </label>
               <input type="text" value={confirmText} onChange={e => setConfirmText(e.target.value)}
                 className="w-full h-10 px-3 rounded-xl text-sm" style={{ background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+              <p className="text-[10px] mt-1 select-all cursor-pointer" style={{ color: "var(--text-muted)" }}
+                onClick={() => { setConfirmText(clientName); }}>
+                انقر للنسخ: <span style={{ color: "var(--danger)", fontWeight: 600 }}>{clientName}</span>
+              </p>
             </div>
             <div className="flex gap-2">
               <button onClick={() => { setShowModal(false); setConfirmText(""); }}
                 className="flex-1 h-10 rounded-xl text-sm font-bold" style={{ background: "var(--bg-muted)", color: "var(--text-secondary)" }}>
                 إلغاء
               </button>
-              <button onClick={handleDelete} disabled={deleting || confirmText !== clientName}
+              <button onClick={handleDelete} disabled={deleting || !nameMatch}
                 className="flex-1 h-10 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-1 disabled:opacity-40"
                 style={{ background: "var(--danger)" }}>
                 {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
