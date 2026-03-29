@@ -309,12 +309,15 @@ export default function ClientDetailPage() {
       const res = await fetch(`/api/clients/${id}`);
       if (!res.ok) throw new Error("فشل في تحميل بيانات العميل");
       const data = await res.json();
-      setClient(data);
+      // API returns { tenant, stats, ... } — flatten for component use
+      const clientData = data.tenant ? { ...data.tenant, stats: data.stats, plan_change_logs: data.plan_change_logs, trial_info: data.trial_info } : data;
+      setClient(clientData);
 
       // Initialize module states
+      const mods = clientData.modules || data.modules;
       const states: Record<string, { active: boolean; price: string }> = {};
       ALL_MODULE_KEYS.forEach((key) => {
-        const existing = data.modules?.find(
+        const existing = mods?.find(
           (m: TenantModuleData) => m.module_key === key
         );
         states[key] = {
@@ -777,7 +780,7 @@ export default function ClientDetailPage() {
           </div>
 
           {/* Delete client — super_admin only */}
-          <DeleteClientSection clientId={client.id} clientName={client.name} />
+          {client?.name && <DeleteClientSection clientId={client.id} clientName={client.name} />}
 
           {/* Trial Conversion */}
           {client.is_trial && (
@@ -1562,8 +1565,9 @@ function DeleteClientSection({ clientId, clientName }: { clientId: string; clien
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
 
-  const nameMatch = confirmText.trim() === clientName.trim() ||
-    confirmText.trim().toLowerCase() === clientName.trim().toLowerCase();
+  const ct = (confirmText || '').trim();
+  const cn = (clientName || '').trim();
+  const nameMatch = ct.length > 0 && (ct === cn || ct.toLowerCase() === cn.toLowerCase());
 
   const handleDelete = async () => {
     if (!nameMatch) {
