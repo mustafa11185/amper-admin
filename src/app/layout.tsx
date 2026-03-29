@@ -36,6 +36,12 @@ export default function RootLayout({
       dir="rtl"
       className={`${tajawal.variable} ${rajdhani.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/icon-192.png" />
+        <meta name="theme-color" content="#1B4FD8" />
+      </head>
       <body className="min-h-full flex flex-col">
         {children}
         <Toaster

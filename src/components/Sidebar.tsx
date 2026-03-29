@@ -113,34 +113,9 @@ export default function Sidebar({ userRole, userName }: SidebarProps) {
     >
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 py-6">
-        <svg
-          width="40"
-          height="40"
-          viewBox="0 0 96 96"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <defs>
-            <linearGradient id="logoGrad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="var(--violet)" />
-              <stop offset="100%" stopColor="var(--blue-primary)" />
-            </linearGradient>
-          </defs>
-          <path
-            d="M48 4L88 26V70L48 92L8 70V26L48 4Z"
-            fill="url(#logoGrad)"
-          />
-          <text
-            x="48"
-            y="58"
-            textAnchor="middle"
-            fill="white"
-            fontSize="32"
-            fontWeight="bold"
-            fontFamily="sans-serif"
-          >
-            A
-          </text>
+        <svg width="40" height="40" viewBox="0 0 32 32">
+          <polygon points="16,2 28,9 28,23 16,30 4,23 4,9" fill="#1B4FD8" />
+          <text x="16" y="21" textAnchor="middle" fill="white" fontSize="14" fontWeight="bold">⚡</text>
         </svg>
         <div>
           <span
