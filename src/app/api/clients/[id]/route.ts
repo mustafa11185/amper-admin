@@ -169,87 +169,106 @@ export async function DELETE(
       return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
     }
 
-    // Hard delete: remove all tenant data permanently
-    // Use raw SQL transaction to handle deep FK chains
+    // Hard delete: remove ALL tenant data in correct FK order
+    // Using raw SQL to avoid Prisma schema mismatches
     await prisma.$transaction(async (tx) => {
-      // Level 4: deepest dependencies
-      await tx.$executeRaw`DELETE FROM pos_transactions WHERE staff_id IN (SELECT id FROM staff WHERE tenant_id = ${id})`;
-      await tx.$executeRaw`DELETE FROM collector_daily_reports WHERE staff_id IN (SELECT id FROM staff WHERE tenant_id = ${id})`;
-      await tx.$executeRaw`DELETE FROM collector_shifts WHERE staff_id IN (SELECT id FROM staff WHERE tenant_id = ${id})`;
-      await tx.$executeRaw`DELETE FROM operator_shifts WHERE staff_id IN (SELECT id FROM staff WHERE tenant_id = ${id})`;
-      await tx.$executeRaw`DELETE FROM operator_schedules WHERE staff_id IN (SELECT id FROM staff WHERE tenant_id = ${id})`;
-      await tx.$executeRaw`DELETE FROM staff_gps_logs WHERE staff_id IN (SELECT id FROM staff WHERE tenant_id = ${id})`;
-      await tx.$executeRaw`DELETE FROM staff_devices WHERE staff_id IN (SELECT id FROM staff WHERE tenant_id = ${id})`;
-      await tx.$executeRaw`DELETE FROM collector_discount_requests WHERE staff_id IN (SELECT id FROM staff WHERE tenant_id = ${id})`;
+      // Helper subqueries
+      const staffSub = `(SELECT id FROM staff WHERE tenant_id = '${id}')`;
+      const subsSub = `(SELECT id FROM subscribers WHERE tenant_id = '${id}')`;
+      const branchSub = `(SELECT id FROM branches WHERE tenant_id = '${id}')`;
+      const genSub = `(SELECT g.id FROM generators g JOIN branches b ON g.branch_id = b.id WHERE b.tenant_id = '${id}')`;
+      const engineSub = `(SELECT e.id FROM engines e JOIN generators g ON e.generator_id = g.id JOIN branches b ON g.branch_id = b.id WHERE b.tenant_id = '${id}')`;
 
-      // Level 3: subscriber dependencies
-      await tx.$executeRaw`DELETE FROM pos_transactions WHERE subscriber_id IN (SELECT id FROM subscribers WHERE tenant_id = ${id})`;
-      await tx.$executeRaw`DELETE FROM invoices WHERE subscriber_id IN (SELECT id FROM subscribers WHERE tenant_id = ${id})`;
-      await tx.$executeRaw`DELETE FROM meter_readings WHERE subscriber_id IN (SELECT id FROM subscribers WHERE tenant_id = ${id})`;
-      await tx.$executeRaw`DELETE FROM collector_call_requests WHERE subscriber_id IN (SELECT id FROM subscribers WHERE tenant_id = ${id})`;
-      await tx.$executeRaw`DELETE FROM subscriber_discounts WHERE branch_id IN (SELECT id FROM branches WHERE tenant_id = ${id})`;
+      // ── Level 5: engine sensor logs ──
+      await tx.$executeRawUnsafe(`DELETE FROM fuel_logs WHERE engine_id IN ${engineSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM temperature_logs WHERE engine_id IN ${engineSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM oil_pressure_logs WHERE engine_id IN ${engineSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM load_logs WHERE engine_id IN ${engineSub}`);
 
-      // Level 3: branch dependencies
-      await tx.$executeRaw`DELETE FROM delivery_records WHERE branch_id IN (SELECT id FROM branches WHERE tenant_id = ${id})`;
-      await tx.$executeRaw`DELETE FROM expenses WHERE branch_id IN (SELECT id FROM branches WHERE tenant_id = ${id})`;
-      await tx.$executeRaw`DELETE FROM notifications WHERE branch_id IN (SELECT id FROM branches WHERE tenant_id = ${id})`;
-      await tx.$executeRaw`DELETE FROM monthly_pricing WHERE branch_id IN (SELECT id FROM branches WHERE tenant_id = ${id})`;
-      await tx.$executeRaw`DELETE FROM invoice_generation_logs WHERE branch_id IN (SELECT id FROM branches WHERE tenant_id = ${id})`;
-      await tx.$executeRaw`DELETE FROM ai_reports WHERE branch_id IN (SELECT id FROM branches WHERE tenant_id = ${id})`;
-      await tx.$executeRaw`DELETE FROM loss_reports WHERE branch_id IN (SELECT id FROM branches WHERE tenant_id = ${id})`;
-      await tx.$executeRaw`DELETE FROM marketing_messages WHERE branch_id IN (SELECT id FROM branches WHERE tenant_id = ${id})`;
-      await tx.$executeRaw`DELETE FROM normal_cut_logs WHERE branch_id IN (SELECT id FROM branches WHERE tenant_id = ${id})`;
-      await tx.$executeRaw`DELETE FROM offline_sync_queue WHERE branch_id IN (SELECT id FROM branches WHERE tenant_id = ${id})`;
-      await tx.$executeRaw`DELETE FROM operation_logs WHERE branch_id IN (SELECT id FROM branches WHERE tenant_id = ${id})`;
-      await tx.$executeRaw`DELETE FROM upgrade_requests WHERE branch_id IN (SELECT id FROM branches WHERE tenant_id = ${id})`;
-      await tx.$executeRaw`DELETE FROM alleys WHERE branch_id IN (SELECT id FROM branches WHERE tenant_id = ${id})`;
-      await tx.$executeRaw`DELETE FROM collector_wallets WHERE branch_id IN (SELECT id FROM branches WHERE tenant_id = ${id})`;
+      // ── Level 4: staff child tables ──
+      await tx.$executeRawUnsafe(`DELETE FROM pos_transactions WHERE staff_id IN ${staffSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM collector_daily_reports WHERE staff_id IN ${staffSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM collector_shifts WHERE staff_id IN ${staffSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM operator_shifts WHERE staff_id IN ${staffSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM operator_schedules WHERE staff_id IN ${staffSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM staff_gps_logs WHERE staff_id IN ${staffSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM staff_devices WHERE staff_id IN ${staffSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM collector_discount_requests WHERE staff_id IN ${staffSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM salary_payments WHERE staff_id IN ${staffSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM staff_salary_configs WHERE staff_id IN ${staffSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM staff_salaries WHERE staff_id IN ${staffSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM collector_permissions WHERE staff_id IN ${staffSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM operator_permissions WHERE staff_id IN ${staffSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM staff_branch_access WHERE staff_id IN ${staffSub}`);
 
-      // Level 3: generator dependencies
-      await tx.$executeRaw`DELETE FROM iot_devices WHERE generator_id IN (SELECT g.id FROM generators g JOIN branches b ON g.branch_id = b.id WHERE b.tenant_id = ${id})`;
-      await tx.$executeRaw`DELETE FROM raspberry_devices WHERE generator_id IN (SELECT g.id FROM generators g JOIN branches b ON g.branch_id = b.id WHERE b.tenant_id = ${id})`;
-      await tx.$executeRaw`DELETE FROM manual_override_logs WHERE generator_id IN (SELECT g.id FROM generators g JOIN branches b ON g.branch_id = b.id WHERE b.tenant_id = ${id})`;
-      await tx.$executeRaw`DELETE FROM subscriber_app_settings WHERE generator_id IN (SELECT g.id FROM generators g JOIN branches b ON g.branch_id = b.id WHERE b.tenant_id = ${id})`;
+      // ── Level 4: subscriber child tables ──
+      await tx.$executeRawUnsafe(`DELETE FROM pos_transactions WHERE subscriber_id IN ${subsSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM invoices WHERE subscriber_id IN ${subsSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM meter_readings WHERE subscriber_id IN ${subsSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM collector_call_requests WHERE subscriber_id IN ${subsSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM collector_discount_requests WHERE subscriber_id IN ${subsSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM subscriber_discounts WHERE subscriber_id IN ${subsSub}`);
 
-      // Level 2: direct tenant children (salary, permissions, staff, subscribers)
-      await tx.$executeRaw`DELETE FROM salary_payments WHERE tenant_id = ${id}`;
-      await tx.$executeRaw`DELETE FROM staff_salary_configs WHERE tenant_id = ${id}`;
-      await tx.$executeRaw`DELETE FROM staff_salaries WHERE tenant_id = ${id}`;
-      await tx.$executeRaw`DELETE FROM collector_permissions WHERE staff_id IN (SELECT id FROM staff WHERE tenant_id = ${id})`;
-      await tx.$executeRaw`DELETE FROM operator_permissions WHERE staff_id IN (SELECT id FROM staff WHERE tenant_id = ${id})`;
-      await tx.$executeRaw`DELETE FROM staff_branch_access WHERE staff_id IN (SELECT id FROM staff WHERE tenant_id = ${id})`;
-      await tx.$executeRaw`DELETE FROM subscribers WHERE tenant_id = ${id}`;
-      await tx.$executeRaw`DELETE FROM staff WHERE tenant_id = ${id}`;
+      // ── Level 3: generator child tables ──
+      await tx.$executeRawUnsafe(`DELETE FROM iot_devices WHERE generator_id IN ${genSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM raspberry_devices WHERE generator_id IN ${genSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM manual_override_logs WHERE generator_id IN ${genSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM operator_shifts WHERE generator_id IN ${genSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM operator_schedules WHERE generator_id IN ${genSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM subscriber_app_settings WHERE generator_id IN ${genSub}`);
 
-      // Level 2: generators (via branch cascade)
-      await tx.$executeRaw`DELETE FROM engines WHERE generator_id IN (SELECT g.id FROM generators g JOIN branches b ON g.branch_id = b.id WHERE b.tenant_id = ${id})`;
-      await tx.$executeRaw`DELETE FROM generators WHERE branch_id IN (SELECT id FROM branches WHERE tenant_id = ${id})`;
+      // ── Level 3: branch child tables ──
+      await tx.$executeRawUnsafe(`DELETE FROM delivery_records WHERE branch_id IN ${branchSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM expenses WHERE branch_id IN ${branchSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM notifications WHERE branch_id IN ${branchSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM monthly_pricing WHERE branch_id IN ${branchSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM invoice_generation_logs WHERE branch_id IN ${branchSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM ai_reports WHERE branch_id IN ${branchSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM loss_reports WHERE branch_id IN ${branchSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM marketing_messages WHERE branch_id IN ${branchSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM normal_cut_logs WHERE branch_id IN ${branchSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM offline_sync_queue WHERE branch_id IN ${branchSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM operation_logs WHERE branch_id IN ${branchSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM upgrade_requests WHERE branch_id IN ${branchSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM collector_wallets WHERE branch_id IN ${branchSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM pos_devices WHERE branch_id IN ${branchSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM staff_gps_logs WHERE branch_id IN ${branchSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM subscriber_discounts WHERE branch_id IN ${branchSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM invoices WHERE branch_id IN ${branchSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM alleys WHERE branch_id IN ${branchSub}`);
 
-      // Level 1: direct tenant FKs
-      await tx.$executeRaw`DELETE FROM pos_devices WHERE tenant_id = ${id}`;
-      await tx.$executeRaw`DELETE FROM online_payments WHERE tenant_id = ${id}`;
-      await tx.$executeRaw`DELETE FROM payments WHERE tenant_id = ${id}`;
-      await tx.$executeRaw`DELETE FROM billing_invoices WHERE tenant_id = ${id}`;
-      await tx.$executeRaw`DELETE FROM support_tickets WHERE tenant_id = ${id}`;
-      await tx.$executeRaw`DELETE FROM subscriber_app_settings WHERE tenant_id = ${id}`;
-      await tx.$executeRaw`DELETE FROM plan_change_logs WHERE tenant_id = ${id}`;
-      await tx.$executeRaw`DELETE FROM tenant_discounts WHERE tenant_id = ${id}`;
-      await tx.$executeRaw`DELETE FROM gps_logs WHERE tenant_id = ${id}`;
-      await tx.$executeRaw`DELETE FROM audit_logs WHERE tenant_id = ${id}`;
+      // ── Level 2: main entity tables ──
+      await tx.$executeRawUnsafe(`DELETE FROM subscribers WHERE tenant_id = '${id}'`);
+      await tx.$executeRawUnsafe(`DELETE FROM staff WHERE tenant_id = '${id}'`);
+      await tx.$executeRawUnsafe(`DELETE FROM engines WHERE generator_id IN ${genSub}`);
+      await tx.$executeRawUnsafe(`DELETE FROM generators WHERE branch_id IN ${branchSub}`);
 
-      // Level 0: branches + modules cascade from tenant
-      await tx.$executeRaw`DELETE FROM branches WHERE tenant_id = ${id}`;
-      await tx.$executeRaw`DELETE FROM tenant_modules WHERE tenant_id = ${id}`;
+      // ── Level 1: direct tenant FK tables ──
+      await tx.$executeRawUnsafe(`DELETE FROM pos_devices WHERE tenant_id = '${id}'`);
+      await tx.$executeRawUnsafe(`DELETE FROM online_payments WHERE tenant_id = '${id}'`);
+      await tx.$executeRawUnsafe(`DELETE FROM payments WHERE tenant_id = '${id}'`);
+      await tx.$executeRawUnsafe(`DELETE FROM billing_invoices WHERE tenant_id = '${id}'`);
+      await tx.$executeRawUnsafe(`DELETE FROM support_tickets WHERE tenant_id = '${id}'`);
+      await tx.$executeRawUnsafe(`DELETE FROM subscriber_app_settings WHERE tenant_id = '${id}'`);
+      await tx.$executeRawUnsafe(`DELETE FROM plan_change_logs WHERE tenant_id = '${id}'`);
+      await tx.$executeRawUnsafe(`DELETE FROM tenant_discounts WHERE tenant_id = '${id}'`);
+      await tx.$executeRawUnsafe(`DELETE FROM gps_logs WHERE tenant_id = '${id}'`);
+      await tx.$executeRawUnsafe(`DELETE FROM audit_logs WHERE tenant_id = '${id}'`);
+      await tx.$executeRawUnsafe(`DELETE FROM salary_payments WHERE tenant_id = '${id}'`);
+      await tx.$executeRawUnsafe(`DELETE FROM staff_salary_configs WHERE tenant_id = '${id}'`);
 
-      // Finally: delete tenant
-      await tx.$executeRaw`DELETE FROM tenants WHERE id = ${id}`;
-    }, { timeout: 30000 });
+      // ── Level 0: branches + modules (cascade) + tenant ──
+      await tx.$executeRawUnsafe(`DELETE FROM branches WHERE tenant_id = '${id}'`);
+      await tx.$executeRawUnsafe(`DELETE FROM tenant_modules WHERE tenant_id = '${id}'`);
+      await tx.$executeRawUnsafe(`DELETE FROM tenants WHERE id = '${id}'`);
+    }, { timeout: 60000 });
 
     return NextResponse.json({ message: "تم حذف العميل وجميع بياناته نهائياً" });
   } catch (error) {
     console.error("Hard delete client error:", error);
+    const msg = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: `فشل الحذف: ${(error as Error).message}` },
+      { error: `فشل الحذف: ${msg}` },
       { status: 500 }
     );
   }
