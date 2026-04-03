@@ -162,7 +162,7 @@ function getTenantStatus(t: Tenant): {
   if (t.is_active) {
     return { label: "نشط", bg: "#D1FAE5", color: "#059669" };
   }
-  return { label: "موقوف", bg: "#FEE2E2", color: "#DC2626" };
+  return { label: "معطّل", bg: "#F3F4F6", color: "#6B7280" };
 }
 
 function getPlanBadge(plan: PlanType): { bg: string; color: string } {

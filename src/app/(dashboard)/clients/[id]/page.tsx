@@ -1593,11 +1593,11 @@ function DeleteClientSection({ clientId, clientName }: { clientId: string; clien
     <>
       <div className="rounded-2xl p-5" style={{ background: "#FEF2F2", border: "1px solid #FECACA" }}>
         <h3 className="text-sm font-bold mb-2" style={{ color: "var(--danger)" }}>منطقة الخطر</h3>
-        <p className="text-xs mb-3" style={{ color: "var(--text-muted)" }}>حذف العميل سيعطّل الحساب نهائياً</p>
+        <p className="text-xs mb-3" style={{ color: "var(--text-muted)" }}>حذف العميل نهائياً سيزيل جميع بياناته من النظام بشكل لا يمكن التراجع عنه</p>
         <button onClick={() => setShowModal(true)}
           className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold text-white cursor-pointer"
           style={{ background: "var(--danger)" }}>
-          <Trash2 size={14} /> حذف العميل
+          <Trash2 size={14} /> حذف العميل نهائياً
         </button>
       </div>
 
@@ -1608,9 +1608,9 @@ function DeleteClientSection({ clientId, clientName }: { clientId: string; clien
               <div className="w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center" style={{ background: "#FEF2F2" }}>
                 <AlertCircle size={24} style={{ color: "var(--danger)" }} />
               </div>
-              <h3 className="text-base font-bold mb-1">حذف العميل</h3>
+              <h3 className="text-base font-bold mb-1">حذف العميل نهائياً</h3>
               <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                هذا الإجراء لا يمكن التراجع عنه. سيتم تعطيل الحساب نهائياً.
+                ⚠️ هذا الإجراء لا يمكن التراجع عنه — سيُحذف العميل وجميع بياناته (المشتركين، الفواتير، الموظفين، الأزقة، المحافظ) نهائياً من قاعدة البيانات.
               </p>
             </div>
             <div>
