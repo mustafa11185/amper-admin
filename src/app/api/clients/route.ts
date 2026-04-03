@@ -165,6 +165,16 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      // Create default pricing so the manager can start immediately
+      await tx.monthlyPricing.create({
+        data: {
+          branch_id: branch.id,
+          price_per_amp_normal: 3000,
+          price_per_amp_gold: 6000,
+          effective_from: new Date(),
+        },
+      });
+
       return newTenant;
     });
 
