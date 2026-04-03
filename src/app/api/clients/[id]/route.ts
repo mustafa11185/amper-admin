@@ -211,34 +211,38 @@ export async function DELETE(
       await tx.$executeRaw`DELETE FROM manual_override_logs WHERE generator_id IN (SELECT g.id FROM generators g JOIN branches b ON g.branch_id = b.id WHERE b.tenant_id = ${id})`;
       await tx.$executeRaw`DELETE FROM subscriber_app_settings WHERE generator_id IN (SELECT g.id FROM generators g JOIN branches b ON g.branch_id = b.id WHERE b.tenant_id = ${id})`;
 
-      // Level 2: direct tenant children
-      await tx.salaryPayment.deleteMany({ where: { tenant_id: id } });
-      await tx.staffSalaryConfig.deleteMany({ where: { tenant_id: id } });
+      // Level 2: direct tenant children (salary, permissions, staff, subscribers)
+      await tx.$executeRaw`DELETE FROM salary_payments WHERE tenant_id = ${id}`;
+      await tx.$executeRaw`DELETE FROM staff_salary_configs WHERE tenant_id = ${id}`;
+      await tx.$executeRaw`DELETE FROM staff_salaries WHERE tenant_id = ${id}`;
       await tx.$executeRaw`DELETE FROM collector_permissions WHERE staff_id IN (SELECT id FROM staff WHERE tenant_id = ${id})`;
       await tx.$executeRaw`DELETE FROM operator_permissions WHERE staff_id IN (SELECT id FROM staff WHERE tenant_id = ${id})`;
       await tx.$executeRaw`DELETE FROM staff_branch_access WHERE staff_id IN (SELECT id FROM staff WHERE tenant_id = ${id})`;
-      await tx.subscriber.deleteMany({ where: { tenant_id: id } });
-      await tx.staff.deleteMany({ where: { tenant_id: id } });
+      await tx.$executeRaw`DELETE FROM subscribers WHERE tenant_id = ${id}`;
+      await tx.$executeRaw`DELETE FROM staff WHERE tenant_id = ${id}`;
 
       // Level 2: generators (via branch cascade)
       await tx.$executeRaw`DELETE FROM engines WHERE generator_id IN (SELECT g.id FROM generators g JOIN branches b ON g.branch_id = b.id WHERE b.tenant_id = ${id})`;
       await tx.$executeRaw`DELETE FROM generators WHERE branch_id IN (SELECT id FROM branches WHERE tenant_id = ${id})`;
 
       // Level 1: direct tenant FKs
-      await tx.posDevice.deleteMany({ where: { tenant_id: id } });
-      await tx.onlinePayment.deleteMany({ where: { tenant_id: id } });
-      await tx.payment.deleteMany({ where: { tenant_id: id } });
-      await tx.billingInvoice.deleteMany({ where: { tenant_id: id } });
+      await tx.$executeRaw`DELETE FROM pos_devices WHERE tenant_id = ${id}`;
+      await tx.$executeRaw`DELETE FROM online_payments WHERE tenant_id = ${id}`;
+      await tx.$executeRaw`DELETE FROM payments WHERE tenant_id = ${id}`;
+      await tx.$executeRaw`DELETE FROM billing_invoices WHERE tenant_id = ${id}`;
       await tx.$executeRaw`DELETE FROM support_tickets WHERE tenant_id = ${id}`;
       await tx.$executeRaw`DELETE FROM subscriber_app_settings WHERE tenant_id = ${id}`;
       await tx.$executeRaw`DELETE FROM plan_change_logs WHERE tenant_id = ${id}`;
       await tx.$executeRaw`DELETE FROM tenant_discounts WHERE tenant_id = ${id}`;
+      await tx.$executeRaw`DELETE FROM gps_logs WHERE tenant_id = ${id}`;
+      await tx.$executeRaw`DELETE FROM audit_logs WHERE tenant_id = ${id}`;
 
-      // Level 0: branches cascade from tenant, modules cascade from tenant
-      await tx.branch.deleteMany({ where: { tenant_id: id } });
+      // Level 0: branches + modules cascade from tenant
+      await tx.$executeRaw`DELETE FROM branches WHERE tenant_id = ${id}`;
+      await tx.$executeRaw`DELETE FROM tenant_modules WHERE tenant_id = ${id}`;
 
       // Finally: delete tenant
-      await tx.tenant.delete({ where: { id } });
+      await tx.$executeRaw`DELETE FROM tenants WHERE id = ${id}`;
     }, { timeout: 30000 });
 
     return NextResponse.json({ message: "تم حذف العميل وجميع بياناته نهائياً" });
