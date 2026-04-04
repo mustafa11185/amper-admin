@@ -167,21 +167,20 @@ function getTenantStatus(t: Tenant): {
   return { label: "معطّل", bg: "#F3F4F6", color: "#6B7280" };
 }
 
-function getPlanBadge(plan: PlanType): { bg: string; color: string } {
-  switch (plan) {
-    case "starter":
-      return { bg: "#F3F4F6", color: "#374151" };
-    case "pro":
-      return { bg: "var(--blue-soft)", color: "var(--blue-primary)" };
-    case "business":
-      return { bg: "var(--gold-soft)", color: "var(--gold)" };
-    case "corporate":
-      return { bg: "#F0FDFA", color: "#0F766E" };
-    case "fleet":
-      return { bg: "var(--violet-soft)", color: "var(--violet)" };
-    case "custom":
-      return { bg: "#F1F5F9", color: "#64748B" };
+function getPlanBadge(plan: string): { bg: string; color: string } {
+  const map: Record<string, { bg: string; color: string }> = {
+    starter:   { bg: "#F3F4F6", color: "#374151" },
+    pro:       { bg: "var(--blue-soft)", color: "var(--blue-primary)" },
+    business:  { bg: "var(--gold-soft)", color: "var(--gold)" },
+    corporate: { bg: "#F0FDFA", color: "#0F766E" },
+    fleet:     { bg: "var(--violet-soft)", color: "var(--violet)" },
+    custom:    { bg: "#F1F5F9", color: "#64748B" },
+    // Legacy
+    trial:     { bg: "#F3F4F6", color: "#374151" },
+    basic:     { bg: "var(--blue-soft)", color: "var(--blue-primary)" },
+    gold:      { bg: "var(--gold-soft)", color: "var(--gold)" },
   }
+  return map[plan] ?? { bg: "#F3F4F6", color: "#64748B" }
 }
 
 function formatDate(iso: string): string {
