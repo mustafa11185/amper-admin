@@ -230,7 +230,7 @@ const initialWizardData: WizardData = {
   neighborhood: "",
   alley: "",
   plan: "pro",
-  modules: [...PLAN_DEFAULT_MODULES.basic],
+  modules: [...PLAN_DEFAULT_MODULES.pro],
   max_generators: null,
   max_subscribers: null,
 };

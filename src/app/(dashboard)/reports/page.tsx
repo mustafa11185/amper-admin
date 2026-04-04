@@ -36,17 +36,25 @@ function exportCSV(filename: string, headers: string[], rows: string[][]) {
 }
 
 const PLAN_COLORS: Record<string, string> = {
-  basic: "#1B4FD8",
-  gold: "#D97706",
+  starter: "#374151",
+  pro: "#1B4FD8",
+  business: "#D97706",
+  corporate: "#0F766E",
   fleet: "#7C3AED",
   custom: "#64748B",
+  basic: "#1B4FD8",
+  gold: "#D97706",
 };
 
 const PLAN_LABELS: Record<string, string> = {
-  basic: "Basic",
-  gold: "Gold",
+  starter: "Starter",
+  pro: "Pro",
+  business: "Business",
+  corporate: "Corporate",
   fleet: "Fleet",
   custom: "Custom",
+  basic: "Pro",
+  gold: "Business",
 };
 
 /* ── types ───────────────────────────────────────────────────── */

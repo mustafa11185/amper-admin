@@ -132,17 +132,27 @@ const MODULE_LABELS: Record<string, string> = {
 const ALL_MODULE_KEYS = Object.keys(MODULE_LABELS);
 
 const PLAN_COLORS: Record<string, { bg: string; text: string }> = {
-  basic: { bg: "var(--blue-soft)", text: "var(--blue-primary)" },
-  gold: { bg: "var(--gold-soft)", text: "var(--gold)" },
+  starter: { bg: "#F3F4F6", text: "#374151" },
+  pro: { bg: "var(--blue-soft)", text: "var(--blue-primary)" },
+  business: { bg: "var(--gold-soft)", text: "var(--gold)" },
+  corporate: { bg: "#F0FDFA", text: "#0F766E" },
   fleet: { bg: "var(--violet-soft)", text: "var(--violet)" },
   custom: { bg: "#F0FDF4", text: "var(--success)" },
+  // Legacy mappings
+  basic: { bg: "var(--blue-soft)", text: "var(--blue-primary)" },
+  gold: { bg: "var(--gold-soft)", text: "var(--gold)" },
 };
 
 const PLAN_LABELS: Record<string, string> = {
-  basic: "اساسي",
-  gold: "ذهبي",
-  fleet: "اسطول",
+  starter: "Starter",
+  pro: "Pro",
+  business: "Business",
+  corporate: "Corporate",
+  fleet: "Fleet",
   custom: "مخصص",
+  // Legacy
+  basic: "Pro",
+  gold: "Business",
 };
 
 const PRIORITY_COLORS: Record<string, { bg: string; text: string }> = {
@@ -180,7 +190,7 @@ function formatDateShort(dateStr: string): string {
 // ─── Sub-components ──────────────────────────────────────────
 
 function PlanBadge({ plan }: { plan: string }) {
-  const colors = PLAN_COLORS[plan] || PLAN_COLORS.basic;
+  const colors = PLAN_COLORS[plan] || PLAN_COLORS.pro;
   return (
     <span
       className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold"
