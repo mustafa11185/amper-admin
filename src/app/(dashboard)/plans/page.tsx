@@ -97,7 +97,7 @@ export default function PlansPage() {
             {/* Badge */}
             <div className="flex items-center justify-between mb-3 pt-1">
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold text-white" style={{ background: plan.color }}>
-                {plan.key === "gold" && <Crown size={10} />}
+                {plan.key === "business" && <Crown size={10} />}
                 {plan.key === "fleet" && <Sparkles size={10} />}
                 {plan.name_ar}
               </span>
@@ -404,7 +404,7 @@ function TrialClientsTable() {
   const [trials, setTrials] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [upgradeId, setUpgradeId] = useState<string | null>(null);
-  const [upgradePlan, setUpgradePlan] = useState("basic");
+  const [upgradePlan, setUpgradePlan] = useState("pro");
   const [upgrading, setUpgrading] = useState(false);
 
   useEffect(() => {
@@ -475,7 +475,7 @@ function TrialClientsTable() {
                   </span>
                 </td>
                 <td className="p-3 text-center">
-                  <button onClick={() => { setUpgradeId(t.id); setUpgradePlan("basic"); }}
+                  <button onClick={() => { setUpgradeId(t.id); setUpgradePlan("pro"); }}
                     className="px-3 py-1 rounded-lg text-[10px] font-bold text-white" style={{ background: "var(--blue-primary)" }}>
                     ترقية
                   </button>
@@ -492,7 +492,7 @@ function TrialClientsTable() {
           <div className="rounded-2xl w-full max-w-sm p-5 space-y-4" style={{ background: "var(--bg-surface)" }}>
             <h3 className="text-sm font-bold">ترقية العميل</h3>
             <div className="flex gap-2">
-              {[{k:"basic",l:"أساسية",c:"var(--blue-primary)"},{k:"gold",l:"ذهبية",c:"#D97706"},{k:"fleet",l:"أسطول",c:"#7C3AED"}].map(p => (
+              {[{k:"pro",l:"Pro",c:"var(--blue-primary)"},{k:"business",l:"Business",c:"#D97706"},{k:"corporate",l:"Corporate",c:"#0F766E"},{k:"fleet",l:"Fleet",c:"#7C3AED"}].map(p => (
                 <button key={p.k} onClick={() => setUpgradePlan(p.k)}
                   className="flex-1 h-10 rounded-xl text-xs font-bold"
                   style={{ background: upgradePlan === p.k ? p.c : "var(--bg-muted)", color: upgradePlan === p.k ? "#fff" : "var(--text-muted)" }}>

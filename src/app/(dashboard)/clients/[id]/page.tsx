@@ -289,7 +289,7 @@ export default function ClientDetailPage() {
   const [discountOpen, setDiscountOpen] = useState(false);
 
   // Modal form state
-  const [newPlan, setNewPlan] = useState("basic");
+  const [newPlan, setNewPlan] = useState("pro");
   const [freezeReason, setFreezeReason] = useState("");
   const [discountForm, setDiscountForm] = useState({
     discount_type: "percentage",
@@ -426,7 +426,7 @@ export default function ClientDetailPage() {
           is_trial: true,
           trial_ends_at: trialEnd.toISOString(),
           trial_subscriber_limit: 20,
-          plan: "gold",
+          plan: "business",
         }),
       });
       if (!res.ok) throw new Error();
@@ -797,7 +797,7 @@ export default function ClientDetailPage() {
                 </p>
               )}
               <div className="flex gap-2">
-                {["basic", "gold", "fleet"].map(plan => (
+                {["starter", "pro", "business", "corporate", "fleet"].map(plan => (
                   <button key={plan} onClick={async () => {
                     if (!confirm(`ترقية إلى باقة ${plan}؟`)) return;
                     try {
@@ -809,9 +809,9 @@ export default function ClientDetailPage() {
                     } catch { toast.error("خطأ"); }
                   }}
                     className="flex-1 h-10 rounded-xl text-xs font-bold text-white"
-                    style={{ background: plan === "gold" ? "#D97706" : plan === "fleet" ? "#7C3AED" : "var(--blue-primary)" }}
+                    style={{ background: plan === "business" ? "#D97706" : plan === "corporate" ? "#0F766E" : plan === "fleet" ? "#7C3AED" : plan === "starter" ? "#374151" : "var(--blue-primary)" }}
                   >
-                    {plan === "basic" ? "أساسية" : plan === "gold" ? "ذهبية" : "أسطول"}
+                    {plan === "starter" ? "Starter" : plan === "pro" ? "Pro" : plan === "business" ? "Business" : plan === "corporate" ? "Corporate" : "Fleet"}
                   </button>
                 ))}
               </div>
@@ -1264,8 +1264,10 @@ export default function ClientDetailPage() {
                   color: "var(--text-primary)",
                 }}
               >
-                <option value="basic">اساسي</option>
-                <option value="gold">ذهبي</option>
+                <option value="starter">Starter</option>
+                <option value="pro">Pro</option>
+                <option value="business">Business</option>
+                <option value="corporate">Corporate</option>
                 <option value="fleet">اسطول</option>
                 <option value="custom">مخصص</option>
               </select>

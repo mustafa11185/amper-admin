@@ -396,9 +396,11 @@ export default function BillingPage() {
           }}
         >
           <option value="">جميع الباقات</option>
-          <option value="basic">أساسي</option>
-          <option value="gold">ذهبي</option>
-          <option value="fleet">أسطول</option>
+          <option value="starter">Starter</option>
+          <option value="pro">Pro</option>
+          <option value="business">Business</option>
+          <option value="corporate">Corporate</option>
+          <option value="fleet">Fleet</option>
           <option value="custom">مخصص</option>
         </select>
 

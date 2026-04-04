@@ -34,7 +34,7 @@ interface Tenant {
   _count?: { subscribers: number };
 }
 
-type PlanType = "trial" | "basic" | "gold" | "fleet" | "custom";
+type PlanType = "starter" | "pro" | "business" | "corporate" | "fleet" | "custom";
 
 type ModuleKey =
   | "subscriber_management"
@@ -56,8 +56,10 @@ type ModuleKey =
 
 type FilterChip =
   | "all"
-  | "basic"
-  | "gold"
+  | "starter"
+  | "pro"
+  | "business"
+  | "corporate"
   | "fleet"
   | "custom"
   | "active"
@@ -93,18 +95,16 @@ const ALL_MODULES: { key: ModuleKey; label: string }[] = [
 ];
 
 const PLAN_DEFAULT_MODULES: Record<PlanType, ModuleKey[]> = {
-  trial: ["subscriber_management", "basic_invoicing"],
-  basic: ["subscriber_management", "basic_invoicing"],
-  gold: [
-    "subscriber_management",
-    "basic_invoicing",
-    "pos",
-    "reports",
-    "wallet",
-    "whatsapp",
-    "engine_tracking",
-    "daily_brief",
-    "subscriber_app",
+  starter: ["subscriber_management", "basic_invoicing", "pos", "subscriber_app"],
+  pro: ["subscriber_management", "basic_invoicing", "pos", "reports", "wallet", "whatsapp", "subscriber_app", "daily_brief"],
+  business: [
+    "subscriber_management", "basic_invoicing", "pos", "reports", "wallet",
+    "whatsapp", "engine_tracking", "daily_brief", "subscriber_app", "multi_branch", "gps",
+  ],
+  corporate: [
+    "subscriber_management", "basic_invoicing", "pos", "reports", "wallet",
+    "whatsapp", "engine_tracking", "daily_brief", "subscriber_app",
+    "ai_reports", "multi_branch", "gps", "iot_monitoring", "operator_app",
   ],
   fleet: [
     "subscriber_management",
@@ -129,10 +129,12 @@ const PLAN_DEFAULT_MODULES: Record<PlanType, ModuleKey[]> = {
 
 const FILTER_CHIPS: { key: FilterChip; label: string }[] = [
   { key: "all", label: "الكل" },
-  { key: "basic", label: "basic" },
-  { key: "gold", label: "gold" },
-  { key: "fleet", label: "fleet" },
-  { key: "custom", label: "custom" },
+  { key: "starter", label: "Starter" },
+  { key: "pro", label: "Pro" },
+  { key: "business", label: "Business" },
+  { key: "corporate", label: "Corporate" },
+  { key: "fleet", label: "Fleet" },
+  { key: "custom", label: "Custom" },
   { key: "active", label: "نشط" },
   { key: "trial", label: "تجريبي" },
   { key: "locked", label: "موقوف" },
@@ -167,12 +169,14 @@ function getTenantStatus(t: Tenant): {
 
 function getPlanBadge(plan: PlanType): { bg: string; color: string } {
   switch (plan) {
-    case "trial":
-      return { bg: "#F0FDF4", color: "#059669" };
-    case "basic":
+    case "starter":
+      return { bg: "#F3F4F6", color: "#374151" };
+    case "pro":
       return { bg: "var(--blue-soft)", color: "var(--blue-primary)" };
-    case "gold":
+    case "business":
       return { bg: "var(--gold-soft)", color: "var(--gold)" };
+    case "corporate":
+      return { bg: "#F0FDFA", color: "#0F766E" };
     case "fleet":
       return { bg: "var(--violet-soft)", color: "var(--violet)" };
     case "custom":
@@ -225,7 +229,7 @@ const initialWizardData: WizardData = {
   district_key: "",
   neighborhood: "",
   alley: "",
-  plan: "basic",
+  plan: "pro",
   modules: [...PLAN_DEFAULT_MODULES.basic],
   max_generators: null,
   max_subscribers: null,
@@ -273,7 +277,7 @@ export default function ClientsPage() {
       if (search) params.set("search", search);
       if (filter === "active" || filter === "locked" || filter === "trial") {
         params.set("status", filter);
-      } else if (filter === "basic" || filter === "gold" || filter === "fleet" || filter === "custom") {
+      } else if (filter === "starter" || filter === "pro" || filter === "business" || filter === "corporate" || filter === "fleet" || filter === "custom") {
         params.set("plan", filter);
       }
 
@@ -913,8 +917,10 @@ export default function ClientsPage() {
                     </label>
                     <div className="flex flex-wrap gap-2">
                       {(dbPlans.length > 0 ? dbPlans : [
-                        { key: "basic", name_ar: "أساسية", color: "#1B4FD8", price_monthly_iqd: 15000 },
-                        { key: "gold", name_ar: "ذهبية", color: "#D97706", price_monthly_iqd: 35000 },
+                        { key: "starter", name_ar: "Starter ⚡", color: "#374151", price_monthly_iqd: 0 },
+                        { key: "pro", name_ar: "Pro 🚀", color: "#1B4FD8", price_monthly_iqd: 20000 },
+                        { key: "business", name_ar: "Business 👑", color: "#D97706", price_monthly_iqd: 30000 },
+                        { key: "corporate", name_ar: "Corporate 🏢", color: "#0F766E", price_monthly_iqd: 50000 },
                         { key: "fleet", name_ar: "أسطول", color: "#7C3AED", price_monthly_iqd: 75000 },
                       ]).map((p) => {
                         const isSelected = wizardData.plan === p.key;
@@ -1248,7 +1254,7 @@ function TrialManagementView() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [upgradeId, setUpgradeId] = useState<string | null>(null);
-  const [upgradePlan, setUpgradePlan] = useState("basic");
+  const [upgradePlan, setUpgradePlan] = useState("pro");
   const [upgrading, setUpgrading] = useState(false);
   const [extendId, setExtendId] = useState<string | null>(null);
   const [extendDays, setExtendDays] = useState("7");
@@ -1358,7 +1364,7 @@ function TrialManagementView() {
                   <td className="px-3 py-2.5">
                     <div className="flex gap-1">
                       <button onClick={() => sendWhatsApp(t)} className="px-2 py-1 rounded text-[9px] font-bold" style={{ background: "#ECFDF5", color: "#059669" }}>📱</button>
-                      <button onClick={() => { setUpgradeId(t.id); setUpgradePlan("basic"); }} className="px-2 py-1 rounded text-[9px] font-bold" style={{ background: "var(--blue-soft)", color: "var(--blue-primary)" }}>⬆️</button>
+                      <button onClick={() => { setUpgradeId(t.id); setUpgradePlan("pro"); }} className="px-2 py-1 rounded text-[9px] font-bold" style={{ background: "var(--blue-soft)", color: "var(--blue-primary)" }}>⬆️</button>
                       <button onClick={() => { setExtendId(t.id); setExtendDays("7"); }} className="px-2 py-1 rounded text-[9px] font-bold" style={{ background: "#FFF7ED", color: "#D97706" }}>⏰</button>
                     </div>
                   </td>
@@ -1375,7 +1381,7 @@ function TrialManagementView() {
           <div className="rounded-2xl w-full max-w-sm p-5 space-y-4" style={{ background: "var(--bg-surface)" }}>
             <h3 className="text-sm font-bold">ترقية العميل</h3>
             <div className="flex gap-2">
-              {[{k:"basic",l:"أساسية",c:"var(--blue-primary)"},{k:"gold",l:"ذهبية",c:"#D97706"},{k:"fleet",l:"أسطول",c:"#7C3AED"}].map(p => (
+              {[{k:"pro",l:"Pro",c:"var(--blue-primary)"},{k:"business",l:"Business",c:"#D97706"},{k:"corporate",l:"Corporate",c:"#0F766E"},{k:"fleet",l:"Fleet",c:"#7C3AED"}].map(p => (
                 <button key={p.k} onClick={() => setUpgradePlan(p.k)}
                   className="flex-1 h-10 rounded-xl text-xs font-bold" style={{ background: upgradePlan === p.k ? p.c : "var(--bg-muted)", color: upgradePlan === p.k ? "#fff" : "var(--text-muted)" }}>{p.l}</button>
               ))}

@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, 12);
 
     const tenant = await prisma.$transaction(async (tx) => {
-      const isTrial = plan === "trial";
+      const isTrial = plan === "starter" || plan === "trial";
       const newTenant = await tx.tenant.create({
         data: {
           name,
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
           phone,
           email: email || null,
           password: hashedPassword,
-          plan: plan || "basic",
+          plan: plan || "starter",
           is_trial: isTrial,
           trial_ends_at: isTrial ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) : null,
         },
