@@ -115,8 +115,20 @@ export async function POST(request: NextRequest) {
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
+    // Calculate subscription end date
+    const subscriptionEndsAt = new Date();
+    if (body.duration === 'quarterly') {
+      subscriptionEndsAt.setMonth(subscriptionEndsAt.getMonth() + 3);
+    } else if (body.duration === 'annual') {
+      subscriptionEndsAt.setFullYear(subscriptionEndsAt.getFullYear() + 1);
+    } else {
+      subscriptionEndsAt.setMonth(subscriptionEndsAt.getMonth() + 1); // monthly default
+    }
+
+    // For starter/trial, use trial period
+    const isTrial = plan === 'starter' || plan === 'trial';
+
     const tenant = await prisma.$transaction(async (tx) => {
-      const isTrial = plan === "starter" || plan === "trial";
       const newTenant = await tx.tenant.create({
         data: {
           name,
@@ -126,7 +138,8 @@ export async function POST(request: NextRequest) {
           password: hashedPassword,
           plan: plan || "starter",
           is_trial: isTrial,
-          trial_ends_at: isTrial ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) : null,
+          trial_ends_at: isTrial ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) : null,
+          subscription_ends_at: isTrial ? null : subscriptionEndsAt,
         },
       });
 

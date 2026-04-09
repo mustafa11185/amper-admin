@@ -22,7 +22,11 @@ import {
   CheckCircle2,
   AlertCircle,
   Info,
+  ArrowUpCircle,
+  CreditCard,
+  BarChart3,
 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -47,6 +51,7 @@ interface Tenant {
   subscription_ends_at: string | null;
   locked_at: string | null;
   created_at: string;
+  modules?: { module_key: string; is_active: boolean }[];
   _count?: { subscribers: number };
 }
 
@@ -134,6 +139,8 @@ const GOVERNORATES = [
   "القادسية", "دهوك", "السليمانية",
 ];
 
+const SUPPORT_PHONE = process.env.NEXT_PUBLIC_WHATSAPP || '9647801234567';
+
 const PAGE_SIZE = 20;
 
 // ─── Helpers ─────────────────────────────────────────────────
@@ -215,7 +222,7 @@ function buildWelcomeMessage(data: {
   lines.push(
     ``,
     `📞 الدعم الفني:`,
-    `واتساب: 07801234567`,
+    `واتساب: ${SUPPORT_PHONE}`,
     ``,
     `شكراً لاختياركم أمبير! ⚡`,
   );
@@ -269,6 +276,30 @@ export default function FinancePage() {
   });
   const [createLoading, setCreateLoading] = useState(false);
   const [dbPlans, setDbPlans] = useState<PlanOption[]>([]);
+
+  // Record Payment modal
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentForm, setPaymentForm] = useState({
+    tenant_id: "",
+    amount: "",
+    method: "cash",
+    reference: "",
+    notes: "",
+  });
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentSearch, setPaymentSearch] = useState("");
+  const [paymentSearchResults, setPaymentSearchResults] = useState<Tenant[]>([]);
+
+  // Upgrade plan modal
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeClient, setUpgradeClient] = useState<Tenant | null>(null);
+  const [upgradePlan, setUpgradePlan] = useState("");
+  const [upgradeSendWhatsApp, setUpgradeSendWhatsApp] = useState(true);
+  const [upgradeLoading, setUpgradeLoading] = useState(false);
+
+  // Revenue chart
+  const [revenueData, setRevenueData] = useState<{ month: string; revenue: number; count: number }[]>([]);
+  const [revenueLoading, setRevenueLoading] = useState(false);
 
   // ─── Fetch Plans ─────────────────────────────────────────
 
@@ -393,6 +424,129 @@ export default function FinancePage() {
     if (activeTab === "alerts") fetchAlerts();
   }, [activeTab, fetchAlerts]);
 
+  // ─── Fetch Revenue Chart ────────────────────────────────
+
+  const fetchRevenueChart = useCallback(async () => {
+    setRevenueLoading(true);
+    try {
+      const res = await fetch("/api/finance/revenue-chart");
+      if (res.ok) {
+        const d = await res.json();
+        setRevenueData(d.data || []);
+      }
+    } catch {
+      console.error("Failed to fetch revenue chart");
+    } finally {
+      setRevenueLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === "summary") fetchRevenueChart();
+  }, [activeTab, fetchRevenueChart]);
+
+  // ─── Payment Search ──────────────────────────────────────
+
+  useEffect(() => {
+    if (paymentSearch.length < 2) {
+      setPaymentSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/clients?search=${encodeURIComponent(paymentSearch)}&limit=8`);
+        if (res.ok) {
+          const data = await res.json();
+          setPaymentSearchResults(data.tenants || []);
+        }
+      } catch { /* ignore */ }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [paymentSearch]);
+
+  // ─── Record Payment Handler ─────────────────────────────
+
+  const handleRecordPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!paymentForm.tenant_id || !paymentForm.amount || !paymentForm.method) {
+      toast.error("يرجى تعبئة الحقول المطلوبة");
+      return;
+    }
+    setPaymentLoading(true);
+    try {
+      const res = await fetch("/api/finance/record-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tenant_id: paymentForm.tenant_id,
+          amount: Number(paymentForm.amount),
+          method: paymentForm.method,
+          reference: paymentForm.reference || undefined,
+          notes: paymentForm.notes || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.error || "فشل في تسجيل الدفعة");
+      }
+      toast.success("تم تسجيل الدفعة بنجاح");
+      setShowPaymentModal(false);
+      setPaymentForm({ tenant_id: "", amount: "", method: "cash", reference: "", notes: "" });
+      setPaymentSearch("");
+      fetchStats();
+      fetchInvoices();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "حدث خطأ";
+      toast.error(msg);
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  // ─── Upgrade Plan Handler ───────────────────────────────
+
+  const handleUpgradePlan = async () => {
+    if (!upgradeClient || !upgradePlan) return;
+    setUpgradeLoading(true);
+    try {
+      const res = await fetch(`/api/clients/${upgradeClient.id}/plan`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: upgradePlan, notes: "ترقية من صفحة الإدارة المالية" }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.error || "فشل في ترقية الباقة");
+      }
+      toast.success("تم ترقية الباقة بنجاح");
+
+      if (upgradeSendWhatsApp && upgradeClient.phone) {
+        const planLabel = PLAN_LABELS[upgradePlan] || upgradePlan;
+        const message = [
+          `مرحباً ${upgradeClient.owner_name}`,
+          ``,
+          `تم ترقية حسابك في أمبير إلى باقة ${planLabel}`,
+          ``,
+          `شكراً لثقتكم بأمبير!`,
+        ].join("\n");
+        let phone = upgradeClient.phone.trim().replace(/[^0-9]/g, '');
+        if (phone.startsWith('0')) phone = '964' + phone.substring(1);
+        else if (!phone.startsWith('964')) phone = '964' + phone;
+        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, "_blank");
+      }
+
+      setShowUpgradeModal(false);
+      setUpgradeClient(null);
+      setUpgradePlan("");
+      fetchClients();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "حدث خطأ";
+      toast.error(msg);
+    } finally {
+      setUpgradeLoading(false);
+    }
+  };
+
   // ─── Create Client Handler ───────────────────────────────
 
   const handleCreateClient = async (e: React.FormEvent) => {
@@ -414,6 +568,7 @@ export default function FinancePage() {
           password: createForm.password,
           governorate: createForm.governorate || undefined,
           plan: createForm.plan,
+          duration: createForm.duration,
           modules: selectedPlan?.modules || [],
         }),
       });
@@ -487,7 +642,9 @@ export default function FinancePage() {
             : undefined,
         });
 
-        const phone = createForm.phone.replace(/^0/, "964");
+        let phone = createForm.phone.trim().replace(/[^0-9]/g, '');
+        if (phone.startsWith('0')) phone = '964' + phone.substring(1);
+        else if (!phone.startsWith('964')) phone = '964' + phone;
         window.open(
           `https://wa.me/${phone}?text=${encodeURIComponent(message)}`,
           "_blank"
@@ -758,6 +915,83 @@ export default function FinancePage() {
               </p>
             </button>
           </div>
+
+          {/* Revenue Chart */}
+          <div
+            style={{
+              background: "var(--bg-surface)",
+              borderRadius: 16,
+              padding: 24,
+              boxShadow: "var(--shadow-md)",
+              border: "1px solid var(--border)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  background: "var(--blue-soft)",
+                  color: "var(--blue-primary)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <BarChart3 size={18} />
+              </div>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+                الإيرادات الشهرية (آخر 6 أشهر)
+              </h3>
+            </div>
+            {revenueLoading ? (
+              <div style={{ display: "flex", justifyContent: "center", padding: 40 }}>
+                <Loader2 size={24} className="animate-spin" style={{ color: "var(--text-muted)" }} />
+              </div>
+            ) : revenueData.length === 0 ? (
+              <p style={{ textAlign: "center", color: "var(--text-muted)", padding: 40 }}>
+                لا توجد بيانات إيرادات
+              </p>
+            ) : (
+              <div style={{ width: "100%", height: 280, direction: "ltr" }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={revenueData} margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <XAxis
+                      dataKey="month"
+                      tick={{ fill: "var(--text-muted)", fontSize: 12 }}
+                      tickLine={false}
+                      axisLine={{ stroke: "var(--border)" }}
+                    />
+                    <YAxis
+                      tick={{ fill: "var(--text-muted)", fontSize: 12 }}
+                      tickLine={false}
+                      axisLine={{ stroke: "var(--border)" }}
+                      tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: "var(--bg-elevated)",
+                        border: "1px solid var(--border)",
+                        borderRadius: 10,
+                        color: "var(--text-primary)",
+                        fontSize: 13,
+                      }}
+                      formatter={(value: any) => [`${formatNumber(value)} د.ع`, "الإيرادات"]}
+                      labelFormatter={(label: any) => `شهر ${label}`}
+                    />
+                    <Bar
+                      dataKey="revenue"
+                      fill="var(--blue-primary)"
+                      radius={[6, 6, 0, 0]}
+                      maxBarSize={48}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
         </>
       )}
 
@@ -885,7 +1119,7 @@ export default function FinancePage() {
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ background: "var(--bg-elevated)" }}>
-                    {["العميل", "الباقة", "الحالة", "المشتركين", "تاريخ الانتهاء", "تاريخ الإنضمام"].map((h) => (
+                    {["العميل", "الباقة", "الحالة", "المشتركين", "تاريخ الانتهاء", "تاريخ الإنضمام", ""].map((h) => (
                       <th
                         key={h}
                         style={{
@@ -907,7 +1141,7 @@ export default function FinancePage() {
                   {clientsLoading ? (
                     Array.from({ length: 5 }).map((_, i) => (
                       <tr key={i}>
-                        {Array.from({ length: 6 }).map((_, j) => (
+                        {Array.from({ length: 7 }).map((_, j) => (
                           <td key={j} style={{ padding: "14px 16px" }}>
                             <Skeleton width="80px" height="16px" />
                           </td>
@@ -917,7 +1151,7 @@ export default function FinancePage() {
                   ) : clients.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={6}
+                        colSpan={7}
                         style={{ padding: 40, textAlign: "center", color: "var(--text-muted)", fontSize: 14 }}
                       >
                         لا يوجد عملاء
@@ -1005,6 +1239,49 @@ export default function FinancePage() {
                             }}
                           >
                             {formatDate(client.created_at)}
+                          </td>
+                          <td style={{ padding: "14px 16px" }}>
+                            {client.plan !== "fleet" && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setUpgradeClient(client);
+                                  // Set default to next plan above current
+                                  const planOrder = ["starter", "basic", "pro", "business", "gold", "corporate", "fleet"];
+                                  const currentIdx = planOrder.indexOf(client.plan);
+                                  const nextPlan = currentIdx >= 0 && currentIdx < planOrder.length - 1 ? planOrder[currentIdx + 1] : "fleet";
+                                  setUpgradePlan(nextPlan);
+                                  setShowUpgradeModal(true);
+                                }}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 4,
+                                  padding: "5px 12px",
+                                  borderRadius: 8,
+                                  border: "1px solid var(--border)",
+                                  background: "transparent",
+                                  color: "var(--blue-primary)",
+                                  fontSize: 12,
+                                  fontWeight: 600,
+                                  fontFamily: "var(--font-tajawal)",
+                                  cursor: "pointer",
+                                  whiteSpace: "nowrap",
+                                  transition: "all 0.15s",
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = "var(--blue-soft)";
+                                  e.currentTarget.style.borderColor = "var(--blue-primary)";
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = "transparent";
+                                  e.currentTarget.style.borderColor = "var(--border)";
+                                }}
+                              >
+                                <ArrowUpCircle size={13} />
+                                ترقية
+                              </button>
+                            )}
                           </td>
                         </tr>
                       );
@@ -1111,6 +1388,28 @@ export default function FinancePage() {
             <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
               إجمالي: {invoicesTotal} فاتورة
             </span>
+
+            <button
+              onClick={() => setShowPaymentModal(true)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "9px 20px",
+                borderRadius: 12,
+                border: "none",
+                background: "linear-gradient(135deg, var(--blue-primary), var(--violet))",
+                color: "#FFFFFF",
+                fontSize: 14,
+                fontWeight: 600,
+                fontFamily: "var(--font-tajawal)",
+                cursor: "pointer",
+                boxShadow: "0 4px 16px rgba(27,79,216,0.3)",
+              }}
+            >
+              <CreditCard size={16} />
+              تسجيل دفعة
+            </button>
           </div>
 
           {/* Invoices Table */}
@@ -1739,6 +2038,379 @@ export default function FinancePage() {
                 {createLoading ? "جاري الإنشاء..." : "إنشاء العميل"}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════ RECORD PAYMENT MODAL ════════════════ */}
+      {showPaymentModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 50,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(15,23,42,0.4)",
+            backdropFilter: "blur(4px)",
+          }}
+          onClick={() => setShowPaymentModal(false)}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 480,
+              maxHeight: "90vh",
+              overflowY: "auto",
+              background: "var(--bg-surface)",
+              borderRadius: 20,
+              boxShadow: "var(--shadow-lg)",
+              padding: "28px 32px",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+                تسجيل دفعة جديدة
+              </h2>
+              <button
+                onClick={() => setShowPaymentModal(false)}
+                style={{
+                  width: 32, height: 32, borderRadius: 8, border: "none",
+                  background: "var(--bg-muted)", color: "var(--text-muted)", cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleRecordPayment} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {/* Tenant search + select */}
+              <FormField label="العميل *">
+                <input
+                  type="text"
+                  value={paymentSearch}
+                  onChange={(e) => setPaymentSearch(e.target.value)}
+                  placeholder="ابحث عن العميل..."
+                  style={inputStyle}
+                />
+                {paymentSearch.length >= 2 && paymentSearchResults.length > 0 && (
+                  <div
+                    style={{
+                      marginTop: 4,
+                      maxHeight: 150,
+                      overflowY: "auto",
+                      border: "1px solid var(--border)",
+                      borderRadius: 10,
+                      background: "var(--bg-surface)",
+                    }}
+                  >
+                    {paymentSearchResults.map((c) => (
+                        <div
+                          key={c.id}
+                          onClick={() => {
+                            setPaymentForm((f) => ({ ...f, tenant_id: c.id }));
+                            setPaymentSearch(`${c.name} — ${c.owner_name}`);
+                          }}
+                          style={{
+                            padding: "8px 12px",
+                            cursor: "pointer",
+                            borderBottom: "1px solid var(--border)",
+                            fontSize: 13,
+                            background: paymentForm.tenant_id === c.id ? "var(--blue-soft)" : "transparent",
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-elevated)")}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = paymentForm.tenant_id === c.id ? "var(--blue-soft)" : "transparent")}
+                        >
+                          <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>{c.name}</span>
+                          <span style={{ color: "var(--text-muted)", marginInlineStart: 8 }}>{c.owner_name} · {c.phone}</span>
+                        </div>
+                      ))}
+                  </div>
+                )}
+                {paymentForm.tenant_id && (
+                  <p style={{ fontSize: 11, color: "var(--success)", margin: "4px 0 0" }}>
+                    تم اختيار العميل
+                  </p>
+                )}
+              </FormField>
+
+              {/* Amount */}
+              <FormField label="المبلغ (د.ع) *">
+                <input
+                  type="number"
+                  required
+                  value={paymentForm.amount}
+                  onChange={(e) => setPaymentForm((f) => ({ ...f, amount: e.target.value }))}
+                  placeholder="مثال: 35000"
+                  dir="ltr"
+                  style={{ ...inputStyle, textAlign: "left", fontFamily: "var(--font-rajdhani)" }}
+                />
+              </FormField>
+
+              {/* Method */}
+              <FormField label="طريقة الدفع *">
+                <div style={{ display: "flex", gap: 8 }}>
+                  {[
+                    { key: "cash", label: "نقدي" },
+                    { key: "bank_transfer", label: "حوالة مصرفية" },
+                    { key: "card", label: "بطاقة" },
+                  ].map((m) => {
+                    const isSelected = paymentForm.method === m.key;
+                    return (
+                      <button
+                        key={m.key}
+                        type="button"
+                        onClick={() => setPaymentForm((f) => ({ ...f, method: m.key }))}
+                        style={{
+                          flex: 1,
+                          padding: "8px 12px",
+                          borderRadius: 10,
+                          border: `2px solid ${isSelected ? "var(--blue-primary)" : "var(--border)"}`,
+                          background: isSelected ? "var(--blue-soft)" : "transparent",
+                          color: isSelected ? "var(--blue-primary)" : "var(--text-secondary)",
+                          fontSize: 13,
+                          fontWeight: isSelected ? 600 : 400,
+                          fontFamily: "var(--font-tajawal)",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {m.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </FormField>
+
+              {/* Reference */}
+              <FormField label="رقم المرجع (اختياري)">
+                <input
+                  type="text"
+                  value={paymentForm.reference}
+                  onChange={(e) => setPaymentForm((f) => ({ ...f, reference: e.target.value }))}
+                  placeholder="رقم الحوالة أو المرجع"
+                  dir="ltr"
+                  style={{ ...inputStyle, textAlign: "left" }}
+                />
+              </FormField>
+
+              {/* Notes */}
+              <FormField label="ملاحظات (اختياري)">
+                <input
+                  type="text"
+                  value={paymentForm.notes}
+                  onChange={(e) => setPaymentForm((f) => ({ ...f, notes: e.target.value }))}
+                  placeholder="ملاحظات إضافية"
+                  style={inputStyle}
+                />
+              </FormField>
+
+              <button
+                type="submit"
+                disabled={paymentLoading || !paymentForm.tenant_id}
+                style={{
+                  width: "100%",
+                  padding: "12px 0",
+                  borderRadius: 12,
+                  border: "none",
+                  background: "linear-gradient(135deg, var(--blue-primary), var(--violet))",
+                  color: "#FFFFFF",
+                  fontSize: 15,
+                  fontWeight: 700,
+                  fontFamily: "var(--font-tajawal)",
+                  cursor: paymentLoading || !paymentForm.tenant_id ? "not-allowed" : "pointer",
+                  opacity: paymentLoading || !paymentForm.tenant_id ? 0.7 : 1,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  marginTop: 8,
+                }}
+              >
+                {paymentLoading && <Loader2 size={16} className="animate-spin" />}
+                {paymentLoading ? "جاري التسجيل..." : "تسجيل الدفعة"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════ UPGRADE PLAN MODAL ════════════════ */}
+      {showUpgradeModal && upgradeClient && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 50,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(15,23,42,0.4)",
+            backdropFilter: "blur(4px)",
+          }}
+          onClick={() => { setShowUpgradeModal(false); setUpgradeClient(null); }}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 440,
+              maxHeight: "90vh",
+              overflowY: "auto",
+              background: "var(--bg-surface)",
+              borderRadius: 20,
+              boxShadow: "var(--shadow-lg)",
+              padding: "28px 32px",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+              <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+                ترقية باقة العميل
+              </h2>
+              <button
+                onClick={() => { setShowUpgradeModal(false); setUpgradeClient(null); }}
+                style={{
+                  width: 32, height: 32, borderRadius: 8, border: "none",
+                  background: "var(--bg-muted)", color: "var(--text-muted)", cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Client info */}
+            <div
+              style={{
+                padding: "12px 16px",
+                borderRadius: 12,
+                background: "var(--bg-elevated)",
+                marginBottom: 20,
+              }}
+            >
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>
+                {upgradeClient.name}
+              </p>
+              <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--text-muted)" }}>
+                {upgradeClient.owner_name} · الباقة الحالية:{" "}
+                <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>
+                  {PLAN_LABELS[upgradeClient.plan] || upgradeClient.plan}
+                </span>
+              </p>
+            </div>
+
+            {/* Plan options */}
+            <FormField label="الباقة الجديدة">
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {(() => {
+                  const planOrder = ["starter", "basic", "pro", "business", "gold", "corporate", "fleet"];
+                  const currentIdx = planOrder.indexOf(upgradeClient.plan);
+                  const higherPlans = planOrder.filter((_, i) => i > currentIdx);
+                  const plansToShow = dbPlans.length > 0
+                    ? dbPlans.filter((p) => higherPlans.includes(p.key))
+                    : higherPlans.map((key) => ({ key, name_ar: PLAN_LABELS[key] || key, price_monthly_iqd: 0, price_annual_iqd: null, max_generators: 0, max_subscribers: 0, modules: [] }));
+
+                  return plansToShow.map((plan) => {
+                    const isSelected = upgradePlan === plan.key;
+                    return (
+                      <label
+                        key={plan.key}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 12,
+                          padding: "10px 14px",
+                          borderRadius: 12,
+                          border: `2px solid ${isSelected ? "var(--blue-primary)" : "var(--border)"}`,
+                          background: isSelected ? "var(--blue-soft)" : "transparent",
+                          cursor: "pointer",
+                          transition: "all 0.15s",
+                        }}
+                      >
+                        <input
+                          type="radio"
+                          name="upgrade-plan"
+                          value={plan.key}
+                          checked={isSelected}
+                          onChange={() => setUpgradePlan(plan.key)}
+                          style={{ accentColor: "var(--blue-primary)" }}
+                        />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>
+                              {plan.name_ar || PLAN_LABELS[plan.key] || plan.key}
+                            </span>
+                            {plan.price_monthly_iqd > 0 && (
+                              <span
+                                style={{
+                                  fontSize: 13,
+                                  fontWeight: 700,
+                                  fontFamily: "var(--font-rajdhani)",
+                                  color: "var(--text-primary)",
+                                }}
+                              >
+                                {formatNumber(plan.price_monthly_iqd)} د.ع/شهر
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </label>
+                    );
+                  });
+                })()}
+              </div>
+            </FormField>
+
+            {/* WhatsApp checkbox */}
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                fontSize: 14,
+                color: "var(--text-secondary)",
+                cursor: "pointer",
+                marginTop: 16,
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={upgradeSendWhatsApp}
+                onChange={(e) => setUpgradeSendWhatsApp(e.target.checked)}
+                style={{ accentColor: "var(--blue-primary)", width: 16, height: 16 }}
+              />
+              <Send size={14} />
+              إرسال إشعار واتساب
+            </label>
+
+            {/* Submit */}
+            <button
+              onClick={handleUpgradePlan}
+              disabled={upgradeLoading || !upgradePlan}
+              style={{
+                width: "100%",
+                padding: "12px 0",
+                borderRadius: 12,
+                border: "none",
+                background: "linear-gradient(135deg, var(--blue-primary), var(--violet))",
+                color: "#FFFFFF",
+                fontSize: 15,
+                fontWeight: 700,
+                fontFamily: "var(--font-tajawal)",
+                cursor: upgradeLoading || !upgradePlan ? "not-allowed" : "pointer",
+                opacity: upgradeLoading || !upgradePlan ? 0.7 : 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                marginTop: 16,
+              }}
+            >
+              {upgradeLoading && <Loader2 size={16} className="animate-spin" />}
+              {upgradeLoading ? "جاري الترقية..." : "ترقية الباقة"}
+            </button>
           </div>
         </div>
       )}
