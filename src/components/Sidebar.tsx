@@ -15,6 +15,7 @@ import {
   LogOut,
   Gem,
   Banknote,
+  Inbox,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -38,6 +39,13 @@ const navItems: NavItem[] = [
     href: "/clients",
     icon: <Users size={20} />,
     roles: ["super_admin", "sales", "support"],
+  },
+  {
+    label: "صندوق الطلبات",
+    href: "/leads",
+    icon: <Inbox size={20} />,
+    roles: ["super_admin", "sales"],
+    badge: true,
   },
   {
     label: "الباقات",
