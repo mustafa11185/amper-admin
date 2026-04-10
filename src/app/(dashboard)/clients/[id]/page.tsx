@@ -28,6 +28,8 @@ import {
   MessageSquare,
   AlertCircle,
   Loader2,
+  Sparkles,
+  Check,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────
@@ -294,6 +296,9 @@ export default function ClientDetailPage() {
 
   // Modals
   const [changePlanOpen, setChangePlanOpen] = useState(false);
+  const [overridesOpen, setOverridesOpen] = useState(false);
+  const [overrides, setOverrides] = useState<string[]>([]);
+  const [savingOverrides, setSavingOverrides] = useState(false);
   const [freezeOpen, setFreezeOpen] = useState(false);
   const [trialOpen, setTrialOpen] = useState(false);
   const [discountOpen, setDiscountOpen] = useState(false);
@@ -379,6 +384,40 @@ export default function ClientDetailPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function openOverrides() {
+    try {
+      const res = await fetch(`/api/clients/${id}/feature-overrides`);
+      const data = await res.json();
+      setOverrides(data.feature_overrides ?? []);
+      setOverridesOpen(true);
+    } catch {
+      toast.error("فشل في تحميل الميزات");
+    }
+  }
+
+  async function saveOverrides() {
+    setSavingOverrides(true);
+    try {
+      const res = await fetch(`/api/clients/${id}/feature-overrides`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ feature_overrides: overrides }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success("تم حفظ الميزات المفعّلة");
+      setOverridesOpen(false);
+      fetchClient();
+    } catch {
+      toast.error("فشل الحفظ");
+    } finally {
+      setSavingOverrides(false);
+    }
+  }
+
+  function toggleOverride(key: string) {
+    setOverrides(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
   }
 
   async function handleFreeze() {
@@ -723,6 +762,18 @@ export default function ClientDetailPage() {
               >
                 <TestTube size={14} />
                 تفعيل تجريبية
+              </button>
+
+              <button
+                onClick={openOverrides}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer"
+                style={{
+                  background: "rgba(124, 58, 237, 0.1)",
+                  color: "#7C3AED",
+                }}
+              >
+                <Sparkles size={14} />
+                ميزات مدفوعة
               </button>
 
               {/* Activate / Deactivate */}
@@ -1306,6 +1357,65 @@ export default function ClientDetailPage() {
             >
               {submitting && <Loader2 size={14} className="animate-spin" />}
               تاكيد
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Feature Overrides Modal */}
+      <Modal
+        open={overridesOpen}
+        onClose={() => setOverridesOpen(false)}
+        title="إضافة ميزات مدفوعة (à la carte)"
+      >
+        <div className="space-y-4">
+          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+            فعّل ميزات بشكل فردي لهذا العميل بغض النظر عن باقته الحالية. مفيد لاتفاقيات مخصصة.
+          </p>
+          <div className="space-y-2">
+            {[
+              { key: "fuel_theft_detection", label: "🛢️ كاشف سرقة الوقود", color: "#DC2626" },
+              { key: "overload_detection", label: "⚡ كشف الاستهلاك المخالف", color: "#EA580C" },
+              { key: "voltage_monitoring", label: "⚡ مراقبة الفولتية", color: "#7C3AED" },
+              { key: "profitability_calc", label: "💰 حاسبة الربحية", color: "#0F766E" },
+              { key: "whatsapp_alerts", label: "📲 تنبيهات WhatsApp", color: "#16A34A" },
+              { key: "smart_maintenance", label: "🔧 الصيانة الذكية المتقدمة", color: "#2563EB" },
+            ].map(f => {
+              const enabled = overrides.includes(f.key);
+              return (
+                <button
+                  key={f.key}
+                  onClick={() => toggleOverride(f.key)}
+                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm transition-colors cursor-pointer"
+                  style={{
+                    background: enabled ? f.color + "15" : "var(--bg-elevated)",
+                    border: `1px solid ${enabled ? f.color + "60" : "var(--border)"}`,
+                  }}
+                >
+                  <span style={{ color: enabled ? f.color : "var(--text-primary)", fontWeight: enabled ? 700 : 400 }}>
+                    {f.label}
+                  </span>
+                  {enabled && <Check size={16} style={{ color: f.color }} />}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex gap-2 justify-end pt-2">
+            <button
+              onClick={() => setOverridesOpen(false)}
+              className="px-4 py-2 rounded-xl text-sm cursor-pointer"
+              style={{ color: "var(--text-muted)" }}
+            >
+              الغاء
+            </button>
+            <button
+              onClick={saveOverrides}
+              disabled={savingOverrides}
+              className="flex items-center gap-1.5 px-5 py-2 rounded-xl text-sm font-bold text-white cursor-pointer"
+              style={{ background: savingOverrides ? "var(--text-muted)" : "#7C3AED" }}
+            >
+              {savingOverrides && <Loader2 size={14} className="animate-spin" />}
+              حفظ
             </button>
           </div>
         </div>
