@@ -43,31 +43,64 @@ export async function GET(request: NextRequest) {
       where.locked_at = { not: null };
     }
 
-    const [tenants, total] = await Promise.all([
-      prisma.tenant.findMany({
-        where,
-        orderBy: { created_at: "desc" },
-        skip: (page - 1) * limit,
-        take: limit,
-        include: {
-          modules: { select: { module_key: true, is_active: true } },
-          _count: {
-            select: {
-              branches: true,
-              subscribers: true,
-              staff: true,
-            },
+    // Defensive explicit select — listing every column we display.
+    // Using `include` (which fetches all columns) crashes when production
+    // schema is missing any new column we added recently. With explicit
+    // select, the query is resilient to schema drift.
+    let tenants: any[] = []
+    let total = 0
+    try {
+      ;[tenants, total] = await Promise.all([
+        prisma.tenant.findMany({
+          where,
+          orderBy: { created_at: "desc" },
+          skip: (page - 1) * limit,
+          take: limit,
+          select: {
+            id: true,
+            name: true,
+            owner_name: true,
+            phone: true,
+            email: true,
+            plan: true,
+            is_active: true,
+            is_trial: true,
+            trial_ends_at: true,
+            subscription_ends_at: true,
+            locked_at: true,
+            created_at: true,
+            modules: { select: { module_key: true, is_active: true } },
+            _count: { select: { branches: true, subscribers: true, staff: true } },
           },
-        },
-      }),
-      prisma.tenant.count({ where }),
-    ]);
+        }),
+        prisma.tenant.count({ where }),
+      ])
+    } catch (err: any) {
+      console.warn("[clients] full query failed, retrying with minimal select:", err.message)
+      // Stage 2 — drop the optional columns and try again
+      ;[tenants, total] = await Promise.all([
+        prisma.tenant.findMany({
+          where,
+          orderBy: { created_at: "desc" },
+          skip: (page - 1) * limit,
+          take: limit,
+          select: {
+            id: true,
+            name: true,
+            owner_name: true,
+            phone: true,
+            email: true,
+            plan: true,
+            is_active: true,
+            created_at: true,
+          },
+        }),
+        prisma.tenant.count({ where }),
+      ])
+    }
 
     return NextResponse.json({
-      tenants: tenants.map((t) => ({
-        ...t,
-        password: undefined,
-      })),
+      tenants,
       total,
       pages: Math.ceil(total / limit),
     });
