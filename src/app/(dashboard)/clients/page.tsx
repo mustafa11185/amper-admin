@@ -1281,13 +1281,14 @@ function TrialManagementView() {
     if (!upgradeId) return;
     setUpgrading(true);
     try {
-      const res = await fetch(`/api/clients/${upgradeId}`, {
+      // Use canonical /plan endpoint — writes audit log + billing cycle.
+      const res = await fetch(`/api/clients/${upgradeId}/plan`, {
         method: "PUT", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: upgradePlan, is_trial: false, trial_ends_at: null }),
+        body: JSON.stringify({ plan: upgradePlan, notes: "ترقية من قائمة العملاء التجريبيون" }),
       });
       if (res.ok) { toast.success("تم الترقية"); setUpgradeId(null); setData(null); setLoading(true);
         fetch("/api/clients/trials").then(r => r.json()).then(d => { setData(d); setLoading(false); });
-      }
+      } else { const err = await res.json().catch(() => null); toast.error(err?.error || "فشل الترقية"); }
     } catch { toast.error("خطأ"); }
     setUpgrading(false);
   };

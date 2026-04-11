@@ -113,7 +113,11 @@ export async function PUT(
       owner_name,
       phone,
       email,
-      plan,
+      // NOTE: `plan` is intentionally NOT accepted here — all plan changes
+      // must go through PUT /api/clients/[id]/plan so the audit log
+      // (PlanChangeLog) is always written and trial flags / billing cycle
+      // are handled. If a caller sends `plan` to this endpoint it's silently
+      // ignored.
       is_active,
       is_trial,
       trial_ends_at,
@@ -129,7 +133,6 @@ export async function PUT(
         ...(owner_name !== undefined && { owner_name }),
         ...(phone !== undefined && { phone }),
         ...(email !== undefined && { email }),
-        ...(plan !== undefined && { plan }),
         ...(is_active !== undefined && { is_active }),
         ...(is_trial !== undefined && { is_trial }),
         ...(trial_ends_at !== undefined && {

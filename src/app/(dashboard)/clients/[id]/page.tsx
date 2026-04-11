@@ -862,11 +862,15 @@ export default function ClientDetailPage() {
                   <button key={plan} onClick={async () => {
                     if (!confirm(`ترقية إلى باقة ${plan}؟`)) return;
                     try {
-                      const res = await fetch(`/api/clients/${client.id}`, {
+                      // Use the canonical /plan endpoint — it writes
+                      // PlanChangeLog, clears trial flags, and starts a
+                      // billing cycle. The general PUT silently drops `plan`.
+                      const res = await fetch(`/api/clients/${client.id}/plan`, {
                         method: "PUT", headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ plan, is_trial: false, trial_ends_at: null }),
+                        body: JSON.stringify({ plan, notes: "ترقية من شاشة العميل (تجربة → مدفوع)" }),
                       });
-                      if (res.ok) { toast.success("تم الترقية بنجاح"); fetchClient(); }
+                      if (res.ok) { toast.success("تم الترقية بنجاح"); fetchClient(); fetchPlanLogs(); }
+                      else { const err = await res.json().catch(() => null); toast.error(err?.error || "فشل الترقية"); }
                     } catch { toast.error("خطأ"); }
                   }}
                     className="flex-1 h-10 rounded-xl text-xs font-bold text-white"
