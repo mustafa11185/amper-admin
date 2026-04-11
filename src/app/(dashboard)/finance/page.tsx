@@ -270,7 +270,7 @@ export default function FinancePage() {
     password: "",
     governorate: "",
     plan: "pro",
-    duration: "monthly" as "monthly" | "quarterly" | "annual",
+    duration: "quarterly" as "quarterly" | "biannual" | "annual",
     send_welcome: true,
     auto_invoice: true,
   });
@@ -583,20 +583,22 @@ export default function FinancePage() {
       // Send welcome WhatsApp if checked
       if (createForm.send_welcome && createForm.phone) {
         const plan = dbPlans.find((p) => p.key === createForm.plan);
-        let price = plan?.price_monthly_iqd || 0;
-        let durationLabel = "شهر";
-        if (createForm.duration === "quarterly") {
-          price = Math.round(price * 3 * 0.9);
-          durationLabel = "3 أشهر";
+        const baseMonthly = plan?.price_monthly_iqd || 0;
+        // Discounts: 3mo=0%, 6mo=5%, 12mo=15% (kept in sync with /api/plans helpers)
+        let price = baseMonthly * 3;
+        let durationLabel = "3 أشهر";
+        if (createForm.duration === "biannual") {
+          price = Math.round(baseMonthly * 6 * 0.95);
+          durationLabel = "6 أشهر";
         } else if (createForm.duration === "annual") {
-          price = Math.round(price * 12 * 0.8);
+          price = Math.round(baseMonthly * 12 * 0.85);
           durationLabel = "سنة";
         }
 
         const expiryDate = new Date();
-        if (createForm.duration === "monthly") expiryDate.setMonth(expiryDate.getMonth() + 1);
-        else if (createForm.duration === "quarterly") expiryDate.setMonth(expiryDate.getMonth() + 3);
-        else expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+        if (createForm.duration === "annual") expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+        else if (createForm.duration === "biannual") expiryDate.setMonth(expiryDate.getMonth() + 6);
+        else expiryDate.setMonth(expiryDate.getMonth() + 3); // quarterly default
 
         const MODULE_LABELS: Record<string, string> = {
           subscriber_management: "إدارة المشتركين",
@@ -659,7 +661,7 @@ export default function FinancePage() {
         password: "",
         governorate: "",
         plan: "pro",
-        duration: "monthly",
+        duration: "quarterly",
         send_welcome: true,
         auto_invoice: true,
       });
@@ -1935,13 +1937,13 @@ export default function FinancePage() {
                 </div>
               </FormField>
 
-              {/* Duration */}
+              {/* Duration — minimum 3 months, no monthly option */}
               <FormField label="مدة الاشتراك">
                 <div style={{ display: "flex", gap: 8 }}>
                   {[
-                    { key: "monthly" as const, label: "شهري" },
-                    { key: "quarterly" as const, label: "3 أشهر (-10%)" },
-                    { key: "annual" as const, label: "سنوي (-20%)" },
+                    { key: "quarterly" as const, label: "3 أشهر" },
+                    { key: "biannual" as const, label: "6 أشهر (-5%)" },
+                    { key: "annual" as const, label: "سنوي (-15%)" },
                   ].map((d) => {
                     const isSelected = createForm.duration === d.key;
                     return (

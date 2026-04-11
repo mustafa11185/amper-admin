@@ -3,6 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 
+// Pricing model — 3-month minimum, no monthly billing.
+// `price_monthly_iqd` is the base per-month rate when billing for 3 months.
+// Discounts:
+//   3 months → 0%, 6 months → 5%, 12 months → 15%
+// Use periodMonthlyPrice/periodTotalPrice helpers below to compute.
 const DEFAULT_PLANS = [
   {
     id: 'plan-starter', key: 'starter', name_ar: 'Starter ⚡', name_en: 'Starter',
@@ -15,7 +20,8 @@ const DEFAULT_PLANS = [
   },
   {
     id: 'plan-pro', key: 'pro', name_ar: 'Pro 🚀', name_en: 'Pro',
-    price_monthly_iqd: 20000, price_annual_iqd: 200000,
+    // 22,000/mo × 3 = 66,000 (3mo) | 6mo: 125,400 | 12mo: 224,400
+    price_monthly_iqd: 22000, price_annual_iqd: 224400,
     max_generators: 2, max_subscribers: 100,
     description_ar: 'للمولدات المتوسطة — دفع إلكتروني + تقارير + واتساب',
     color: '#1B4FD8', included_modules: ['subscriber_management', 'basic_invoicing', 'pos', 'reports', 'wallet', 'whatsapp', 'subscriber_app', 'daily_brief'],
@@ -24,7 +30,8 @@ const DEFAULT_PLANS = [
   },
   {
     id: 'plan-business', key: 'business', name_ar: 'Business 👑', name_en: 'Business',
-    price_monthly_iqd: 30000, price_annual_iqd: 300000,
+    // 35,000/mo × 3 = 105,000 (3mo) | 6mo: 199,500 | 12mo: 357,000
+    price_monthly_iqd: 35000, price_annual_iqd: 357000,
     max_generators: 5, max_subscribers: 300,
     description_ar: 'الأكثر شيوعاً — تخصيص التطبيق + تقارير متقدمة',
     color: '#D97706', included_modules: ['subscriber_management', 'basic_invoicing', 'pos', 'reports', 'wallet', 'whatsapp', 'engine_tracking', 'subscriber_app', 'daily_brief', 'multi_branch', 'gps'],
@@ -33,7 +40,8 @@ const DEFAULT_PLANS = [
   },
   {
     id: 'plan-corporate', key: 'corporate', name_ar: 'Corporate 🏢', name_en: 'Corporate',
-    price_monthly_iqd: 50000, price_annual_iqd: 500000,
+    // 55,000/mo × 3 = 165,000 (3mo) | 6mo: 313,500 | 12mo: 561,000
+    price_monthly_iqd: 55000, price_annual_iqd: 561000,
     max_generators: 15, max_subscribers: 1000,
     description_ar: 'للشبكات الكبيرة — API + AI + 25 جابي',
     color: '#0F766E', included_modules: ['subscriber_management', 'basic_invoicing', 'pos', 'reports', 'wallet', 'whatsapp', 'engine_tracking', 'subscriber_app', 'daily_brief', 'ai_reports', 'multi_branch', 'gps', 'iot_monitoring', 'operator_app'],
@@ -50,6 +58,22 @@ const DEFAULT_PLANS = [
     trial_days: 0, includes_whatsapp_support: true, includes_ai: true,
   },
 ];
+
+// Period helpers — kept in sync with manager-app /api/plan and Flutter.
+// Allowed periods: quarterly (3mo, 0%), biannual (6mo, 5%), annual (12mo, 15%).
+// There is NO monthly option — minimum subscription is 3 months.
+export type BillingPeriod = "quarterly" | "biannual" | "annual"
+export const PERIOD_MONTHS: Record<BillingPeriod, number> = { quarterly: 3, biannual: 6, annual: 12 }
+export const PERIOD_DISCOUNT: Record<BillingPeriod, number> = { quarterly: 0, biannual: 0.05, annual: 0.15 }
+
+export function periodMonthlyPrice(baseMonthly: number, period: BillingPeriod): number {
+  if (baseMonthly === 0) return 0
+  return Math.round(baseMonthly * (1 - PERIOD_DISCOUNT[period]))
+}
+export function periodTotalPrice(baseMonthly: number, period: BillingPeriod): number {
+  if (baseMonthly === 0) return 0
+  return periodMonthlyPrice(baseMonthly, period) * PERIOD_MONTHS[period]
+}
 
 export async function GET(req: NextRequest) {
   const isPublic = req.nextUrl.searchParams.get("public") === "true";

@@ -148,14 +148,16 @@ export async function POST(request: NextRequest) {
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Calculate subscription end date
+    // Calculate subscription end date.
+    // Minimum billing period is 3 months (no monthly option). Allowed:
+    // quarterly (3mo, default), biannual (6mo), annual (12mo).
     const subscriptionEndsAt = new Date();
-    if (body.duration === 'quarterly') {
-      subscriptionEndsAt.setMonth(subscriptionEndsAt.getMonth() + 3);
-    } else if (body.duration === 'annual') {
+    if (body.duration === 'annual') {
       subscriptionEndsAt.setFullYear(subscriptionEndsAt.getFullYear() + 1);
+    } else if (body.duration === 'biannual') {
+      subscriptionEndsAt.setMonth(subscriptionEndsAt.getMonth() + 6);
     } else {
-      subscriptionEndsAt.setMonth(subscriptionEndsAt.getMonth() + 1); // monthly default
+      subscriptionEndsAt.setMonth(subscriptionEndsAt.getMonth() + 3); // quarterly default
     }
 
     // For starter/trial, use trial period

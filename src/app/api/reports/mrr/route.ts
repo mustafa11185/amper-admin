@@ -3,12 +3,13 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 
-// Plan prices in IQD (matches plan_limits.dart)
+// Plan prices in IQD per month — base rate (3-month minimum subscription).
+// Kept in sync with manager-app/api/plan, company-admin/api/plans, and Flutter.
 const PLAN_PRICES: Record<string, number> = {
   starter: 0, trial: 0,
-  pro: 20000, basic: 20000,
+  pro: 22000, basic: 22000,
   business: 35000, gold: 35000,
-  corporate: 50000,
+  corporate: 55000,
   fleet: 0, custom: 0,
 }
 

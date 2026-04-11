@@ -26,7 +26,8 @@ export async function PUT(
     const { plan, notes, billing_period } = body as {
       plan?: string
       notes?: string
-      billing_period?: "monthly" | "quarterly" | "annual"
+      // Minimum subscription is 3 months. No monthly option anywhere.
+      billing_period?: "quarterly" | "biannual" | "annual"
     }
 
     if (!plan) {
@@ -55,16 +56,15 @@ export async function PUT(
     }
 
     // Compute new subscription_ends_at based on billing period.
-    // This is what gives the upgraded tenant a real billing cycle —
-    // without it, paid upgrades had no expiry date set.
+    // 3 months is the minimum and the default. There is no monthly option.
     const now = new Date()
     const subscriptionEndsAt = new Date(now)
     if (billing_period === "annual") {
       subscriptionEndsAt.setFullYear(subscriptionEndsAt.getFullYear() + 1)
-    } else if (billing_period === "quarterly") {
-      subscriptionEndsAt.setMonth(subscriptionEndsAt.getMonth() + 3)
+    } else if (billing_period === "biannual") {
+      subscriptionEndsAt.setMonth(subscriptionEndsAt.getMonth() + 6)
     } else {
-      subscriptionEndsAt.setMonth(subscriptionEndsAt.getMonth() + 1) // monthly default
+      subscriptionEndsAt.setMonth(subscriptionEndsAt.getMonth() + 3) // quarterly default
     }
 
     const isPaidPlan = !["starter", "trial"].includes(plan.toLowerCase())

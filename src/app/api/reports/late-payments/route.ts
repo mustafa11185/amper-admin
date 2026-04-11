@@ -3,10 +3,11 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 
+// Per-month base rate (3-month minimum). Kept in sync with /api/plans + Flutter.
 const PLAN_PRICES: Record<string, number> = {
-  pro: 20000, basic: 20000,
+  pro: 22000, basic: 22000,
   business: 35000, gold: 35000,
-  corporate: 50000,
+  corporate: 55000,
 }
 
 export async function GET() {

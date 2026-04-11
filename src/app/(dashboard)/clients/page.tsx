@@ -923,10 +923,10 @@ export default function ClientsPage() {
                     <div className="flex flex-wrap gap-2">
                       {(dbPlans.length > 0 ? dbPlans : [
                         { key: "starter", name_ar: "Starter ⚡", color: "#374151", price_monthly_iqd: 0 },
-                        { key: "pro", name_ar: "Pro 🚀", color: "#1B4FD8", price_monthly_iqd: 20000 },
-                        { key: "business", name_ar: "Business 👑", color: "#D97706", price_monthly_iqd: 30000 },
-                        { key: "corporate", name_ar: "Corporate 🏢", color: "#0F766E", price_monthly_iqd: 50000 },
-                        { key: "fleet", name_ar: "أسطول", color: "#7C3AED", price_monthly_iqd: 75000 },
+                        { key: "pro", name_ar: "Pro 🚀", color: "#1B4FD8", price_monthly_iqd: 22000 },
+                        { key: "business", name_ar: "Business 👑", color: "#D97706", price_monthly_iqd: 35000 },
+                        { key: "corporate", name_ar: "Corporate 🏢", color: "#0F766E", price_monthly_iqd: 55000 },
+                        { key: "fleet", name_ar: "أسطول", color: "#7C3AED", price_monthly_iqd: 0 },
                       ]).map((p) => {
                         const isSelected = wizardData.plan === p.key;
                         return (
