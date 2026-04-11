@@ -316,11 +316,17 @@ export default function ClientsPage() {
   }
 
   function handlePlanChange(plan: PlanType) {
+    // Guard against unknown plan keys (e.g. legacy plans from /api/plans).
+    // Without this guard, [...PLAN_DEFAULT_MODULES[plan]] throws on undefined
+    // and the state update never runs — leaving the wizard stuck on "pro".
+    const defaults = PLAN_DEFAULT_MODULES[plan]
     const modules =
       plan === "custom"
         ? wizardData.modules
-        : [...PLAN_DEFAULT_MODULES[plan]];
-    setWizardData((prev) => ({ ...prev, plan, modules }));
+        : defaults
+          ? [...defaults]
+          : [...PLAN_DEFAULT_MODULES.pro]
+    setWizardData((prev) => ({ ...prev, plan, modules }))
   }
 
   function toggleModule(key: ModuleKey) {
@@ -926,7 +932,12 @@ export default function ClientsPage() {
                         return (
                           <button
                             key={p.key}
-                            onClick={() => handlePlanChange(p.key as PlanType)}
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              handlePlanChange(p.key as PlanType)
+                            }}
                             className="px-4 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all"
                             style={{
                               background: isSelected ? p.color : `${p.color}15`,
