@@ -59,24 +59,42 @@ interface DashboardStats {
 // ─── Constants ───────────────────────────────────────────────
 
 const PLAN_COLORS: Record<string, string> = {
-  basic: "#1B4FD8",
-  gold: "#D97706",
+  // New plans
+  starter: "#374151",
+  pro: "#1B4FD8",
+  business: "#D97706",
+  corporate: "#0F766E",
   fleet: "#7C3AED",
   custom: "#64748B",
+  // Legacy
+  basic: "#1B4FD8",
+  gold: "#D97706",
 };
 
 const PLAN_LABELS: Record<string, string> = {
+  // New plans
+  starter: "Starter",
+  pro: "Pro",
+  business: "Business",
+  corporate: "Corporate",
+  fleet: "Fleet",
+  custom: "مخصص",
+  // Legacy
   basic: "أساسي",
   gold: "ذهبي",
-  fleet: "أسطول",
-  custom: "مخصص",
 };
 
 const PLAN_BADGE_STYLES: Record<string, React.CSSProperties> = {
-  basic: { background: "var(--blue-soft)", color: "var(--blue-primary)" },
-  gold: { background: "var(--gold-soft)", color: "var(--gold)" },
+  // New plans
+  starter: { background: "#F3F4F6", color: "#374151" },
+  pro: { background: "var(--blue-soft)", color: "var(--blue-primary)" },
+  business: { background: "var(--gold-soft)", color: "var(--gold)" },
+  corporate: { background: "#F0FDFA", color: "#0F766E" },
   fleet: { background: "var(--violet-soft)", color: "var(--violet)" },
   custom: { background: "#F1F5F9", color: "#64748B" },
+  // Legacy
+  basic: { background: "var(--blue-soft)", color: "var(--blue-primary)" },
+  gold: { background: "var(--gold-soft)", color: "var(--gold)" },
 };
 
 // ─── Skeleton components ─────────────────────────────────────
