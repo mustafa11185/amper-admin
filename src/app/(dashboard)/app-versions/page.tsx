@@ -120,12 +120,14 @@ export default function AppVersionsPage() {
           </div>
         )}
 
-        {/* When the table is empty (fresh DB), render placeholder cards
-            for every known app_key so the admin can fill them in without
-            needing any seed SQL. The upsert PUT will create the row on
-            first save. */}
-        {!loading && versions.length === 0 && (() => {
-          const placeholders: AppVersion[] = Object.keys(APP_LABELS).map((key) => ({
+        {/* For every known app_key that has no DB row yet, render a
+            placeholder card so the admin can fill it in without any
+            seed SQL. The upsert PUT will create the row on first save. */}
+        {!loading && (() => {
+          const existingKeys = new Set(versions.map((v) => v.app_key));
+          const missingKeys = Object.keys(APP_LABELS).filter((k) => !existingKeys.has(k));
+          if (missingKeys.length === 0) return null;
+          const placeholders: AppVersion[] = missingKeys.map((key) => ({
             id: `__new__${key}`,
             app_key: key,
             min_version: "",
