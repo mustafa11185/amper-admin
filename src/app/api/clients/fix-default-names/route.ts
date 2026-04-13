@@ -9,9 +9,11 @@
 // labels for every tenant created before the fix. Running this once
 // after deploy rewrites those rows in place — no schema change.
 //
-// super_admin only.
+// Auth: super_admin session OR ?key=<CRON_SECRET> when the env var
+// is set. The cron-secret path lets us trigger the migration from a
+// CI / curl call without needing an interactive admin session.
 
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 
@@ -21,11 +23,17 @@ export const runtime = 'nodejs'
 const BOILERPLATE_GENERATOR = 'المولدة الرئيسية'
 const BOILERPLATE_BRANCH = 'الفرع الرئيسي'
 
-export async function POST() {
-  const session = await getSession()
-  const role = (session?.user as { role?: string } | undefined)?.role
-  if (role !== 'super_admin') {
-    return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+export async function POST(req: NextRequest) {
+  const cronSecret = process.env.CRON_SECRET
+  const providedKey = req.nextUrl.searchParams.get('key') || req.headers.get('x-cron-key')
+  const cronAllowed = cronSecret && providedKey === cronSecret
+
+  if (!cronAllowed) {
+    const session = await getSession()
+    const role = (session?.user as { role?: string } | undefined)?.role
+    if (role !== 'super_admin') {
+      return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+    }
   }
 
   // Pull every tenant once with its branches + generators so we can
