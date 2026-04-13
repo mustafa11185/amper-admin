@@ -120,11 +120,92 @@ export default function AppVersionsPage() {
           </div>
         )}
 
-        {!loading && versions.length === 0 && (
-          <div className="text-center py-12" style={{ color: "var(--text-muted)" }}>
-            لا توجد إصدارات مسجلة
-          </div>
-        )}
+        {/* When the table is empty (fresh DB), render placeholder cards
+            for every known app_key so the admin can fill them in without
+            needing any seed SQL. The upsert PUT will create the row on
+            first save. */}
+        {!loading && versions.length === 0 && (() => {
+          const placeholders: AppVersion[] = Object.keys(APP_LABELS).map((key) => ({
+            id: `__new__${key}`,
+            app_key: key,
+            min_version: "",
+            latest_version: "",
+            update_url: null,
+            changelog_ar: null,
+            changelog_en: null,
+            force: false,
+            released_at: "",
+            updated_at: "",
+          }));
+          return (
+            <div className="space-y-5">
+              {placeholders.map((v) => {
+                const label = APP_LABELS[v.app_key] || { ar: v.app_key, desc: "" };
+                const isDirty = !!drafts[v.app_key];
+                const isSaving = savingKey === v.app_key;
+                const flashed = flashKey === v.app_key;
+                return (
+                  <div
+                    key={v.id}
+                    className="rounded-xl p-5"
+                    style={{ background: "var(--bg-base)", border: "1px solid var(--border)" }}
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <div className="font-bold text-base" style={{ color: "var(--text-primary)" }}>
+                          {label.ar}
+                          <span className="text-xs font-normal mr-2" style={{ color: "var(--text-muted)" }}>
+                            ({v.app_key}) — جديد
+                          </span>
+                        </div>
+                        <div className="text-xs" style={{ color: "var(--text-muted)" }}>{label.desc}</div>
+                      </div>
+                      {flashed && (
+                        <div className="flex items-center gap-1 text-sm" style={{ color: "#10B981" }}>
+                          <Check size={16} /> تم الحفظ
+                        </div>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Field label="الحد الأدنى (min_version)" value={getValue(v, "min_version")} onChange={(x) => setField(v.app_key, "min_version", x)} placeholder="2.9.0" />
+                      <Field label="الإصدار الحالي (latest_version)" value={getValue(v, "latest_version")} onChange={(x) => setField(v.app_key, "latest_version", x)} placeholder="2.10.0" />
+                      <div className="md:col-span-2">
+                        <Field label="رابط التحديث (update_url)" value={getValue(v, "update_url")} onChange={(x) => setField(v.app_key, "update_url", x)} placeholder="https://github.com/.../releases/download/..." />
+                      </div>
+                      <div className="md:col-span-2">
+                        <Field label="ملاحظات الإصدار (بالعربية)" value={getValue(v, "changelog_ar")} onChange={(x) => setField(v.app_key, "changelog_ar", x)} placeholder="إصلاحات أمنية + تحسينات الأداء" />
+                      </div>
+                      <div className="md:col-span-2">
+                        <Field label="Changelog (English)" value={getValue(v, "changelog_en")} onChange={(x) => setField(v.app_key, "changelog_en", x)} placeholder="Bug fixes and improvements" />
+                      </div>
+                    </div>
+                    <label className="flex items-center gap-2 mt-4 text-sm cursor-pointer" style={{ color: "var(--text-primary)" }}>
+                      <input type="checkbox" checked={getBool(v, "force")} onChange={(e) => setField(v.app_key, "force", e.target.checked)} />
+                      <AlertTriangle size={16} style={{ color: "#D97706" }} />
+                      إجبار جميع المستخدمين على التحديث (تجاوز فحص الإصدار)
+                    </label>
+                    <div className="flex justify-end mt-4">
+                      <button
+                        onClick={() => save(v)}
+                        disabled={!isDirty || isSaving}
+                        className="flex items-center gap-2 px-5 py-2 rounded-lg font-bold text-sm transition-opacity"
+                        style={{
+                          background: isDirty ? "linear-gradient(135deg, #1B4FD8, #7C3AED)" : "var(--bg-elevated)",
+                          color: isDirty ? "white" : "var(--text-muted)",
+                          opacity: isSaving ? 0.6 : 1,
+                          cursor: isDirty && !isSaving ? "pointer" : "not-allowed",
+                        }}
+                      >
+                        <Save size={16} />
+                        {isSaving ? "جاري الحفظ..." : "إنشاء وحفظ"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
 
         <div className="space-y-5">
           {versions.map((v) => {
