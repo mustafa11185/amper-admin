@@ -30,6 +30,15 @@ import {
   Loader2,
   Sparkles,
   Check,
+  Fuel,
+  Droplets,
+  Wifi,
+  WifiOff,
+  Activity,
+  ShieldCheck,
+  TrendingUp,
+  TrendingDown,
+  Truck,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────
@@ -95,6 +104,55 @@ interface PlanChangeLogData {
   to_plan: string | null;
   notes: string | null;
   created_at: string;
+}
+
+interface SupplierData {
+  id: string;
+  name: string;
+  phone: string | null;
+  type: string;
+  total_debt: number;
+}
+
+interface GeneratorStatusData {
+  id: string;
+  name: string;
+  fuel_pct: number | null;
+  tank_capacity: number | null;
+  last_fuel_update: string | null;
+  engines: {
+    id: string;
+    name: string;
+    last_oil_change: string | null;
+    oil_hours_remaining: number;
+    oil_overdue: boolean;
+  }[];
+}
+
+interface IoTStatsData {
+  total: number;
+  online: number;
+  offline: number;
+  last_telemetry: string | null;
+}
+
+interface HealthCheckData {
+  label: string;
+  status: 'good' | 'warning' | 'critical';
+  value: string;
+  detail?: string;
+}
+
+interface SystemHealthData {
+  score: number;
+  grade: string;
+  checks: HealthCheckData[];
+  summary: {
+    collection_rate: number;
+    total_debt: number;
+    subscriber_count: number;
+    supplier_debt: number;
+  };
 }
 
 interface TenantDiscountData {
@@ -288,6 +346,12 @@ export default function ClientDetailPage() {
   const [planLogs, setPlanLogs] = useState<PlanChangeLogData[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // New feature data
+  const [suppliers, setSuppliers] = useState<SupplierData[]>([]);
+  const [generatorStatus, setGeneratorStatus] = useState<GeneratorStatusData[]>([]);
+  const [iotStats, setIoTStats] = useState<IoTStatsData>({ total: 0, online: 0, offline: 0, last_telemetry: null });
+  const [systemHealth, setSystemHealth] = useState<SystemHealthData | null>(null);
+
   // Module state
   const [moduleStates, setModuleStates] = useState<
     Record<string, { active: boolean; price: string }>
@@ -328,6 +392,11 @@ export default function ClientDetailPage() {
       const clientData = data.tenant ? { ...data.tenant, stats: data.stats, plan_change_logs: data.plan_change_logs, trial_info: data.trial_info } : data;
       setClient(clientData);
 
+      // Set new feature data
+      setSuppliers(data.suppliers || []);
+      setGeneratorStatus(data.generator_status || []);
+      if (data.iot_stats) setIoTStats(data.iot_stats);
+
       // Initialize module states
       const mods = clientData.modules || data.modules;
       const states: Record<string, { active: boolean; price: string }> = {};
@@ -358,11 +427,18 @@ export default function ClientDetailPage() {
     }
   }, [id]);
 
+  const fetchHealth = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/clients/${id}/system-health`);
+      if (res.ok) setSystemHealth(await res.json());
+    } catch { /* silent */ }
+  }, [id]);
+
   useEffect(() => {
-    Promise.all([fetchClient(), fetchPlanLogs()]).finally(() =>
+    Promise.all([fetchClient(), fetchPlanLogs(), fetchHealth()]).finally(() =>
       setLoading(false)
     );
-  }, [fetchClient, fetchPlanLogs]);
+  }, [fetchClient, fetchPlanLogs, fetchHealth]);
 
   // ─── Actions ───────────────────────────────────────────────
 
@@ -384,6 +460,40 @@ export default function ClientDetailPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  // One-click downgrade — sends the selected plan straight to the
+  // /plan endpoint with a "downgrade" note in the PlanChangeLog so
+  // the history clearly distinguishes downgrades from upgrades.
+  async function handleDowngrade(targetPlan: string) {
+    if (!confirm(`تنزيل الباقة إلى ${targetPlan}؟ سيتم تقييد المميزات فوراً.`)) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/clients/${id}/plan`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: targetPlan, notes: "تنزيل الباقة من شاشة العميل" }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.error || "فشل تنزيل الباقة");
+      }
+      toast.success("تم تنزيل الباقة بنجاح");
+      fetchClient();
+      fetchPlanLogs();
+    } catch (e: any) {
+      toast.error(e?.message || "فشل تنزيل الباقة");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  // Order used to decide which plans are "lower" than the current one.
+  const PLAN_ORDER = ["starter", "pro", "business", "corporate", "fleet", "custom"] as const;
+  function plansBelow(currentPlan: string): string[] {
+    const idx = PLAN_ORDER.indexOf(currentPlan as typeof PLAN_ORDER[number]);
+    if (idx <= 0) return [];
+    return PLAN_ORDER.slice(0, idx) as unknown as string[];
   }
 
   async function openOverrides() {
@@ -724,6 +834,31 @@ export default function ClientDetailPage() {
                 <ArrowLeftRight size={14} />
                 تغيير الباقة
               </button>
+
+              {/* Downgrade — shows one button per plan strictly below
+                  the current one. Hidden when the client is already on
+                  the lowest tier (starter). */}
+              {plansBelow(client.plan).length > 0 && (
+                <>
+                  {plansBelow(client.plan).map((targetPlan) => (
+                    <button
+                      key={`down-${targetPlan}`}
+                      onClick={() => handleDowngrade(targetPlan)}
+                      disabled={submitting}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer"
+                      style={{
+                        background: "#FEF2F2",
+                        color: "var(--danger)",
+                        opacity: submitting ? 0.6 : 1,
+                      }}
+                      title={`تنزيل إلى ${PLAN_LABELS[targetPlan] || targetPlan}`}
+                    >
+                      <TrendingDown size={14} />
+                      تنزيل إلى {PLAN_LABELS[targetPlan] || targetPlan}
+                    </button>
+                  ))}
+                </>
+              )}
 
               {client.locked_at ? (
                 <button
@@ -1302,6 +1437,278 @@ export default function ClientDetailPage() {
               </p>
             )}
           </div>
+
+          {/* ── System Health ── */}
+          {systemHealth && (
+            <div
+              className="rounded-2xl p-6"
+              style={{ background: "var(--bg-surface)", boxShadow: "var(--shadow-md)" }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-bold" style={{ color: "var(--text-primary)" }}>
+                  <ShieldCheck
+                    size={16}
+                    className="inline-block ml-2"
+                    style={{ color: systemHealth.score >= 70 ? "var(--success)" : systemHealth.score >= 50 ? "var(--gold)" : "var(--danger)" }}
+                  />
+                  صحة النظام
+                </h3>
+                <div className="flex items-center gap-2">
+                  <span
+                    className="text-2xl font-bold"
+                    style={{
+                      fontFamily: "var(--font-rajdhani)",
+                      color: systemHealth.score >= 70 ? "var(--success)" : systemHealth.score >= 50 ? "var(--gold)" : "var(--danger)",
+                    }}
+                  >
+                    {systemHealth.score}%
+                  </span>
+                  <span
+                    className="inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold text-white"
+                    style={{
+                      background: systemHealth.grade === 'A' ? '#059669' : systemHealth.grade === 'B' ? '#1B4FD8' : systemHealth.grade === 'C' ? '#D97706' : '#DC2626',
+                    }}
+                  >
+                    {systemHealth.grade}
+                  </span>
+                </div>
+              </div>
+
+              {/* Progress bar */}
+              <div className="h-2 rounded-full mb-4" style={{ background: "var(--bg-muted)" }}>
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${systemHealth.score}%`,
+                    background: systemHealth.score >= 70 ? '#059669' : systemHealth.score >= 50 ? '#D97706' : '#DC2626',
+                  }}
+                />
+              </div>
+
+              <div className="space-y-2">
+                {systemHealth.checks.map((check, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between p-2.5 rounded-xl"
+                    style={{ background: "var(--bg-elevated)" }}
+                  >
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{
+                          background: check.status === 'good' ? '#059669' : check.status === 'warning' ? '#D97706' : '#DC2626',
+                        }}
+                      />
+                      <span className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                        {check.label}
+                      </span>
+                    </div>
+                    <div className="text-left">
+                      <span
+                        className="text-xs font-bold"
+                        style={{
+                          fontFamily: "var(--font-rajdhani)",
+                          color: check.status === 'good' ? '#059669' : check.status === 'warning' ? '#D97706' : '#DC2626',
+                        }}
+                      >
+                        {check.value}
+                      </span>
+                      {check.detail && (
+                        <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>{check.detail}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── IoT Stats ── */}
+          {iotStats.total > 0 && (
+            <div
+              className="rounded-2xl p-6"
+              style={{ background: "var(--bg-surface)", boxShadow: "var(--shadow-md)" }}
+            >
+              <h3 className="text-base font-bold mb-4" style={{ color: "var(--text-primary)" }}>
+                <Activity
+                  size={16}
+                  className="inline-block ml-2"
+                  style={{ color: "#0891B2" }}
+                />
+                أجهزة IoT
+              </h3>
+
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                <div className="flex flex-col items-center gap-1 py-3 rounded-xl" style={{ background: "var(--bg-elevated)" }}>
+                  <span className="text-lg font-bold" style={{ fontFamily: "var(--font-rajdhani)", color: "var(--text-primary)" }}>{iotStats.total}</span>
+                  <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>إجمالي</span>
+                </div>
+                <div className="flex flex-col items-center gap-1 py-3 rounded-xl" style={{ background: "var(--bg-elevated)" }}>
+                  <div className="flex items-center gap-1">
+                    <Wifi size={12} style={{ color: "#059669" }} />
+                    <span className="text-lg font-bold" style={{ fontFamily: "var(--font-rajdhani)", color: "#059669" }}>{iotStats.online}</span>
+                  </div>
+                  <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>متصل</span>
+                </div>
+                <div className="flex flex-col items-center gap-1 py-3 rounded-xl" style={{ background: "var(--bg-elevated)" }}>
+                  <div className="flex items-center gap-1">
+                    <WifiOff size={12} style={{ color: "var(--danger)" }} />
+                    <span className="text-lg font-bold" style={{ fontFamily: "var(--font-rajdhani)", color: "var(--danger)" }}>{iotStats.offline}</span>
+                  </div>
+                  <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>غير متصل</span>
+                </div>
+              </div>
+
+              {iotStats.last_telemetry && (
+                <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+                  آخر بيانات: {formatDate(iotStats.last_telemetry)}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* ── Fuel & Oil Status ── */}
+          {generatorStatus.length > 0 && (
+            <div
+              className="rounded-2xl p-6"
+              style={{ background: "var(--bg-surface)", boxShadow: "var(--shadow-md)" }}
+            >
+              <h3 className="text-base font-bold mb-4" style={{ color: "var(--text-primary)" }}>
+                <Fuel
+                  size={16}
+                  className="inline-block ml-2"
+                  style={{ color: "#D97706" }}
+                />
+                الوقود والدهن
+              </h3>
+
+              <div className="space-y-3">
+                {generatorStatus.map((gen) => (
+                  <div
+                    key={gen.id}
+                    className="p-3 rounded-xl"
+                    style={{ background: "var(--bg-elevated)" }}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
+                        {gen.name}
+                      </span>
+                      {gen.fuel_pct != null && (
+                        <span className="flex items-center gap-1">
+                          <Fuel size={12} style={{ color: gen.fuel_pct < 20 ? "var(--danger)" : gen.fuel_pct < 50 ? "var(--gold)" : "var(--success)" }} />
+                          <span
+                            className="text-xs font-bold"
+                            style={{
+                              fontFamily: "var(--font-rajdhani)",
+                              color: gen.fuel_pct < 20 ? "var(--danger)" : gen.fuel_pct < 50 ? "var(--gold)" : "var(--success)",
+                            }}
+                          >
+                            {Math.round(gen.fuel_pct)}%
+                          </span>
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Fuel bar */}
+                    {gen.fuel_pct != null && (
+                      <div className="h-1.5 rounded-full mb-2" style={{ background: "var(--bg-muted)" }}>
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${Math.min(100, Math.max(0, gen.fuel_pct))}%`,
+                            background: gen.fuel_pct < 20 ? '#DC2626' : gen.fuel_pct < 50 ? '#D97706' : '#059669',
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Engines oil status */}
+                    {gen.engines.length > 0 && (
+                      <div className="space-y-1.5 mt-2">
+                        {gen.engines.map((eng) => (
+                          <div key={eng.id} className="flex items-center justify-between text-[11px]">
+                            <span className="flex items-center gap-1" style={{ color: "var(--text-secondary)" }}>
+                              <Droplets size={10} style={{ color: eng.oil_overdue ? "var(--danger)" : "var(--blue-primary)" }} />
+                              {eng.name}
+                            </span>
+                            <span
+                              className="font-bold"
+                              style={{
+                                fontFamily: "var(--font-rajdhani)",
+                                color: eng.oil_overdue ? "var(--danger)" : eng.oil_hours_remaining < 20 ? "var(--gold)" : "var(--success)",
+                              }}
+                            >
+                              {eng.oil_overdue
+                                ? `متأخر ${Math.abs(eng.oil_hours_remaining)} ساعة`
+                                : `باقي ${eng.oil_hours_remaining} ساعة`}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Suppliers & Debts ── */}
+          {suppliers.length > 0 && (
+            <div
+              className="rounded-2xl p-6"
+              style={{ background: "var(--bg-surface)", boxShadow: "var(--shadow-md)" }}
+            >
+              <h3 className="text-base font-bold mb-4" style={{ color: "var(--text-primary)" }}>
+                <Truck
+                  size={16}
+                  className="inline-block ml-2"
+                  style={{ color: "#7C3AED" }}
+                />
+                الموردون والديون
+              </h3>
+
+              {/* Total debt summary */}
+              {(() => {
+                const totalDebt = suppliers.reduce((sum, s) => sum + s.total_debt, 0);
+                return totalDebt > 0 ? (
+                  <div className="flex items-center justify-between p-3 rounded-xl mb-3" style={{ background: "#FEF2F2" }}>
+                    <span className="text-sm" style={{ color: "var(--danger)" }}>إجمالي ديون الموردين</span>
+                    <span className="text-sm font-bold" style={{ fontFamily: "var(--font-rajdhani)", color: "var(--danger)" }}>
+                      {totalDebt.toLocaleString()} د.ع
+                    </span>
+                  </div>
+                ) : null;
+              })()}
+
+              <div className="space-y-2">
+                {suppliers.map((sup) => (
+                  <div
+                    key={sup.id}
+                    className="flex items-center justify-between p-2.5 rounded-xl"
+                    style={{ background: "var(--bg-elevated)" }}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate" style={{ color: "var(--text-primary)" }}>
+                        {sup.name}
+                      </p>
+                      <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
+                        {sup.type === 'fuel' ? 'وقود' : sup.type === 'oil' ? 'دهن' : sup.type === 'spare_parts' ? 'قطع غيار' : sup.type === 'service' ? 'صيانة' : 'أخرى'}
+                      </span>
+                    </div>
+                    <span
+                      className="text-sm font-bold"
+                      style={{
+                        fontFamily: "var(--font-rajdhani)",
+                        color: sup.total_debt > 0 ? "var(--danger)" : "var(--success)",
+                      }}
+                    >
+                      {sup.total_debt > 0 ? `${sup.total_debt.toLocaleString()} د.ع` : "مسدد"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
