@@ -1068,15 +1068,23 @@ model ManualOverrideLog {
 }
 
 model Expense {
-  id          String   @id @default(uuid())
-  branch_id   String
-  staff_id    String?
-  category    String
-  amount      Decimal  @db.Decimal(12,2)
-  description String?
-  receipt_url String?
-  created_at  DateTime @default(now())
-  branch      Branch   @relation(fields: [branch_id], references: [id])
+  id            String   @id @default(uuid())
+  branch_id     String
+  staff_id      String?
+  category      String
+  amount        Decimal  @db.Decimal(12,2)
+  description   String?
+  receipt_url   String?
+  payment_type  String   @default("cash")
+  amount_paid   Decimal  @default(0) @db.Decimal(12,2)
+  amount_owed   Decimal  @default(0) @db.Decimal(12,2)
+  supplier_id   String?
+  related_to    String?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @default(now()) @updatedAt
+  branch        Branch   @relation(fields: [branch_id], references: [id])
+  supplier      Supplier? @relation(fields: [supplier_id], references: [id], onDelete: SetNull)
+  payments      SupplierPayment[]
   @@index([branch_id, created_at])
   @@map("expenses")
 }
@@ -1103,10 +1111,26 @@ model Notification {
   body        String
   is_read     Boolean  @default(false)
   payload     Json?
+  dedupe_key  String?
   created_at  DateTime @default(now())
   branch      Branch   @relation(fields: [branch_id], references: [id])
+  @@unique([tenant_id, dedupe_key])
   @@index([branch_id, is_read])
   @@map("notifications")
+}
+
+model NotificationPreference {
+  id         String   @id @default(uuid())
+  tenant_id  String
+  user_id    String?
+  user_type  String?
+  type       String
+  enabled    Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  @@unique([tenant_id, user_id, type])
+  @@index([tenant_id])
+  @@map("notification_preferences")
 }
 
 model MarketingMessage {
@@ -1632,4 +1656,53 @@ model SalaryPayment {
   staff             Staff    @relation(fields: [staff_id], references: [id])
   tenant            Tenant   @relation(fields: [tenant_id], references: [id])
   @@map("salary_payments")
+}
+
+// ─── SUPPLIERS ──────────────────────────────────────────────
+
+model Supplier {
+  id              String   @id @default(uuid())
+  tenant_id       String
+  name            String
+  phone           String?
+  supplier_type   String   @default("other")
+  notes           String?
+  is_active       Boolean  @default(true)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+  expenses        Expense[]
+  payments        SupplierPayment[]
+  @@index([tenant_id, is_active])
+  @@map("suppliers")
+}
+
+model SupplierPayment {
+  id              String   @id @default(uuid())
+  tenant_id       String
+  supplier_id     String
+  expense_id      String?
+  amount          Decimal  @db.Decimal(12,2)
+  payment_method  String   @default("cash")
+  notes           String?
+  recorded_by     String?
+  paid_at         DateTime @default(now())
+  supplier        Supplier @relation(fields: [supplier_id], references: [id], onDelete: Cascade)
+  expense         Expense? @relation(fields: [expense_id], references: [id], onDelete: SetNull)
+  @@index([supplier_id, paid_at])
+  @@index([tenant_id, paid_at])
+  @@map("supplier_payments")
+}
+
+model AppVersion {
+  id             String   @id @default(uuid())
+  app_key        String   @unique // "staff" | "iot" | "partner"
+  min_version    String
+  latest_version String
+  update_url     String?
+  changelog_ar   String?
+  changelog_en   String?
+  force          Boolean  @default(false)
+  released_at    DateTime @default(now())
+  updated_at     DateTime @updatedAt
+  @@map("app_versions")
 }

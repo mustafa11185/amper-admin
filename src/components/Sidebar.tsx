@@ -16,6 +16,8 @@ import {
   Gem,
   Banknote,
   Inbox,
+  Smartphone,
+  Megaphone,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -94,6 +96,18 @@ const navItems: NavItem[] = [
     label: "المتجر",
     href: "/store-manager",
     icon: <ShoppingCart size={20} />,
+    roles: ["super_admin"],
+  },
+  {
+    label: "إصدارات التطبيقات",
+    href: "/app-versions",
+    icon: <Smartphone size={20} />,
+    roles: ["super_admin"],
+  },
+  {
+    label: "الإعلانات",
+    href: "/announcements",
+    icon: <Megaphone size={20} />,
     roles: ["super_admin"],
   },
   {

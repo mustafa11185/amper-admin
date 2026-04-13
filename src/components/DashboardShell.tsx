@@ -13,6 +13,8 @@ const breadcrumbMap: Record<string, string> = {
   "/team": "الفريق",
   "/sync-conflicts": "تعارضات المزامنة",
   "/store-manager": "المتجر",
+  "/app-versions": "إصدارات التطبيقات",
+  "/announcements": "الإعلانات",
   "/settings": "الإعدادات",
 };
 
