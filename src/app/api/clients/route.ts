@@ -191,11 +191,21 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Create default Branch
+      // Create default Branch + Generator. We used to hardcode the
+      // names to "الفرع الرئيسي" / "المولدة الرئيسية" which then
+      // showed up in the staff app header instead of the project
+      // name the user actually typed in the wizard. The wizard only
+      // collects ONE name field (اسم المشروع) and users expect that
+      // name to be the generator label — so default both to it,
+      // with optional overrides if the API caller wants to be
+      // explicit.
+      const branchName = (body.branch_name?.toString().trim()) || name;
+      const generatorName = (body.generator_name?.toString().trim()) || name;
+
       const branch = await tx.branch.create({
         data: {
           tenant_id: newTenant.id,
-          name: "الفرع الرئيسي",
+          name: branchName,
           governorate: governorate || null,
           province_key: province_key || null,
           district_key: district_key || null,
@@ -208,7 +218,7 @@ export async function POST(request: NextRequest) {
       await tx.generator.create({
         data: {
           branch_id: branch.id,
-          name: "المولدة الرئيسية",
+          name: generatorName,
           is_active: true,
         },
       });
