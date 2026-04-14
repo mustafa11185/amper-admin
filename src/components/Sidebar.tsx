@@ -142,14 +142,9 @@ export default function Sidebar({ userRole, userName }: SidebarProps) {
     >
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 py-6">
-        <svg width="40" height="40" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-          <polygon points="24,3 40,3 48,19 40,35 24,35 16,19" fill="#0E2A50" stroke="#1A56A0" strokeWidth="1.5"/>
-          <polygon points="24,7 38,7 45,19 38,31 24,31 17,19" fill="none" stroke="#1A3A6B" strokeWidth="0.5"/>
-          <circle cx="24" cy="3" r="2" fill="#2563EB" opacity="0.6"/>
-          <circle cx="40" cy="3" r="2" fill="#2563EB" opacity="0.6"/>
-          <circle cx="48" cy="19" r="2" fill="#2563EB" opacity="0.6"/>
-          <polygon points="30,7 21,19 27,19 18,33 38,17 30,17" fill="#F59E0B"/>
-          <polygon points="30,7 29,9 32,17 38,17" fill="#FCD34D" opacity="0.45"/>
+        <svg width="40" height="40" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="60,14 100,37 100,83 60,106 20,83 20,37" fill="none" stroke="#1B4FD8" strokeWidth="5" strokeLinejoin="miter"/>
+          <path d="M66,24 L50,60 L62,60 L46,96 L76,56 L62,56 Z" fill="#2D8CFF"/>
         </svg>
         <div>
           <span
