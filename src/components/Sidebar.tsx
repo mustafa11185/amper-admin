@@ -18,6 +18,7 @@ import {
   Inbox,
   Smartphone,
   Megaphone,
+  CreditCard,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -66,6 +67,12 @@ const navItems: NavItem[] = [
     href: "/billing",
     icon: <Receipt size={20} />,
     roles: ["super_admin", "sales", "accountant"],
+  },
+  {
+    label: "إدارة الاشتراكات",
+    href: "/saas-billing",
+    icon: <CreditCard size={20} />,
+    roles: ["super_admin", "sales", "accountant", "support"],
   },
   {
     label: "التذاكر",
