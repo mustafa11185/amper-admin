@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   Lock, Loader2, RefreshCw, ArrowLeft, AlertTriangle, CheckCircle2,
-  Eye, EyeOff, Save, Trash2, Zap, FlaskConical,
+  Eye, EyeOff, Save, Trash2, Zap, FlaskConical, Layers, Sparkles,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -125,6 +125,8 @@ export default function CredentialsPage() {
         </div>
       )}
 
+      <PlanCatalogPanel />
+
       <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm">
         <div className="flex items-start gap-2">
           <AlertTriangle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
@@ -148,6 +150,107 @@ export default function CredentialsPage() {
           onSaved={onSaved}
         />
       )}
+    </div>
+  );
+}
+
+function PlanCatalogPanel() {
+  const [count, setCount] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [seeding, setSeeding] = useState(false);
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      // /api/billing/plans is publicly readable on manager-app, but here we
+      // talk to our own admin DB via the saas-billing/plans endpoint.
+      const r = await fetch('/api/saas-billing/plans');
+      if (r.ok) {
+        const d = await r.json();
+        setCount((d.plans?.length ?? d.items?.length ?? 0) as number);
+      } else {
+        setCount(0);
+      }
+    } catch {
+      setCount(null);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  const seed = async () => {
+    if (!confirm(
+      'سيُضاف ٥ باقات افتراضية (Starter / Pro / Business / Corporate / Fleet) — لن يُكتب على باقات معدّلة سابقاً. متابعة؟'
+    )) return;
+    setSeeding(true);
+    try {
+      const r = await fetch('/api/saas-billing/seed-plans', { method: 'POST' });
+      const d = await r.json();
+      if (r.ok) {
+        toast.success(
+          d.inserted > 0
+            ? `أُضيفت ${d.inserted} باقة (${d.skipped} موجودة سابقاً)`
+            : 'كل الباقات موجودة — لم يُضَف شيء'
+        );
+        await refresh();
+      } else {
+        toast.error(d.error || 'فشل الزرع');
+      }
+    } catch (e) {
+      toast.error('فشل الاتصال');
+      console.error(e);
+    }
+    setSeeding(false);
+  };
+
+  const isEmpty = count === 0;
+
+  return (
+    <div
+      className={`rounded-2xl border p-4 mb-4 ${
+        isEmpty ? 'border-amber-200 bg-amber-50' : 'border-gray-200 bg-white'
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <div
+          className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+            isEmpty ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
+          }`}
+        >
+          <Layers className="w-5 h-5" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-bold text-gray-900 text-sm mb-1">كتالوج الباقات</h3>
+          {loading ? (
+            <p className="text-xs text-gray-500">جارٍ الفحص...</p>
+          ) : isEmpty ? (
+            <p className="text-xs text-amber-800">
+              ⚠️ جدول <code className="font-mono">plans</code> فارغ — صفحة <code className="font-mono">/signup</code> ستفشل بـ <code>PLAN_NOT_FOUND</code>. اضغط الزر أدناه لزرع الباقات الافتراضية.
+            </p>
+          ) : (
+            <p className="text-xs text-gray-600">
+              عدد الباقات الفعّالة: <strong>{count}</strong>. التعديل الفردي من <Link href="/plans" className="text-blue-600 hover:underline">صفحة الباقات</Link>.
+            </p>
+          )}
+          <button
+            onClick={seed}
+            disabled={seeding}
+            className={`mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold border transition ${
+              isEmpty
+                ? 'bg-amber-600 text-white border-amber-700 hover:bg-amber-700'
+                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+            } disabled:opacity-50`}
+          >
+            {seeding ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="w-3.5 h-3.5" />
+            )}
+            {isEmpty ? 'زرع الباقات الافتراضية' : 'إضافة الناقص فقط'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
