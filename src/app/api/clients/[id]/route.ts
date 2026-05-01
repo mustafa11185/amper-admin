@@ -15,49 +15,113 @@ export async function GET(
 
     const { id } = await params;
 
-    const tenant = await prisma.tenant.findUnique({
-      where: { id },
-      include: {
-        modules: true,
-        branches: {
-          include: {
-            generators: true,
-            _count: { select: { subscribers: true } },
-          },
+    // ── 1. CORE: tenant base record (must succeed) ──
+    let tenantBase: any = null;
+    try {
+      tenantBase = await prisma.tenant.findUnique({
+        where: { id },
+        select: {
+          id: true, name: true, owner_name: true, phone: true,
+          email: true, plan: true,
+          is_active: true, is_trial: true,
+          trial_ends_at: true, subscription_ends_at: true,
+          locked_at: true, is_in_grace_period: true, grace_period_ends_at: true,
+          auto_renew_enabled: true, created_at: true, updated_at: true,
         },
-        billing_invoices: { orderBy: { created_at: "desc" }, take: 6 },
-        support_tickets: { orderBy: { created_at: "desc" }, take: 10 },
-        _count: {
-          select: {
-            staff: true,
-            subscribers: true,
-            billing_invoices: true,
-            support_tickets: true,
-          },
-        },
-      },
-    });
-
-    if (!tenant) {
+      });
+    } catch (e: any) {
+      console.error(`[client/${id}] tenant base lookup failed:`, e?.message);
+      return NextResponse.json({ error: "Failed to load tenant", detail: e?.message }, { status: 500 });
+    }
+    if (!tenantBase) {
       return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
     }
 
-    // Additional stats
+    // ── 2. Optional relations — each isolated so a single failure
+    //      doesn't blank out the whole response. Schema drift between
+    //      manager-app and company-admin has historically caused some
+    //      includes to throw at runtime; keep them defensive.
+    let modules: any[] = [];
+    try {
+      modules = await prisma.tenantModule.findMany({ where: { tenant_id: id } });
+    } catch (e: any) { console.warn(`[client/${id}] modules:`, e?.message); }
+
+    let branches: any[] = [];
+    try {
+      branches = await prisma.branch.findMany({
+        where: { tenant_id: id },
+        include: {
+          generators: true,
+          _count: { select: { subscribers: true } },
+        },
+      });
+    } catch (e: any) {
+      console.warn(`[client/${id}] branches with generators:`, e?.message);
+      // Fallback: just plain branches
+      try {
+        branches = await prisma.branch.findMany({ where: { tenant_id: id } });
+      } catch { /* leave empty */ }
+    }
+
+    let billingInvoicesRecent: any[] = [];
+    try {
+      billingInvoicesRecent = await prisma.billingInvoice.findMany({
+        where: { tenant_id: id }, orderBy: { created_at: "desc" }, take: 6,
+      });
+    } catch (e: any) { console.warn(`[client/${id}] billing_invoices:`, e?.message); }
+
+    let supportTicketsRecent: any[] = [];
+    try {
+      supportTicketsRecent = await prisma.supportTicket.findMany({
+        where: { tenant_id: id }, orderBy: { created_at: "desc" }, take: 10,
+      });
+    } catch (e: any) { console.warn(`[client/${id}] support_tickets:`, e?.message); }
+
+    let counts = { staff: 0, subscribers: 0, billing_invoices: 0, support_tickets: 0 };
+    try {
+      const [staffC, subC, billC, ticketC] = await Promise.all([
+        prisma.staff.count({ where: { tenant_id: id } }).catch(() => 0),
+        prisma.subscriber.count({ where: { tenant_id: id } }).catch(() => 0),
+        prisma.billingInvoice.count({ where: { tenant_id: id } }).catch(() => 0),
+        prisma.supportTicket.count({ where: { tenant_id: id } }).catch(() => 0),
+      ]);
+      counts = { staff: staffC, subscribers: subC, billing_invoices: billC, support_tickets: ticketC };
+    } catch (e: any) { console.warn(`[client/${id}] counts:`, e?.message); }
+
+    // Re-assemble the shape the frontend expects.
+    const tenant: any = {
+      ...tenantBase,
+      modules,
+      branches,
+      billing_invoices: billingInvoicesRecent,
+      support_tickets: supportTicketsRecent,
+      _count: counts,
+    };
+
+    // ── 3. Stats (each independently swallowed) ──
     const [planChangeLogs, activeSubscribers, generatorsCount, totalDebtResult] = await Promise.all([
-      prisma.planChangeLog.findMany({ where: { tenant_id: id }, orderBy: { created_at: "desc" }, take: 10 }),
-      prisma.subscriber.count({ where: { tenant_id: id, is_active: true } }),
-      prisma.generator.count({ where: { branch: { tenant_id: id } } }),
-      prisma.subscriber.aggregate({ where: { tenant_id: id }, _sum: { total_debt: true } }),
+      prisma.planChangeLog.findMany({ where: { tenant_id: id }, orderBy: { created_at: "desc" }, take: 10 })
+        .catch((e: any) => { console.warn(`[client/${id}] plan_change_logs:`, e?.message); return [] as any[]; }),
+      prisma.subscriber.count({ where: { tenant_id: id, is_active: true } })
+        .catch((e: any) => { console.warn(`[client/${id}] active_subs count:`, e?.message); return 0; }),
+      prisma.generator.count({ where: { branch: { tenant_id: id } } })
+        .catch((e: any) => { console.warn(`[client/${id}] generators count:`, e?.message); return 0; }),
+      prisma.subscriber.aggregate({ where: { tenant_id: id }, _sum: { total_debt: true } })
+        .catch((e: any) => { console.warn(`[client/${id}] total_debt:`, e?.message); return { _sum: { total_debt: 0 } } as any; }),
     ]);
 
     // Monthly revenue
     const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0,0,0,0);
-    const monthlyInvoices = await prisma.invoice.findMany({
-      where: { tenant_id: id, created_at: { gte: monthStart } },
-      select: { amount_paid: true, total_amount_due: true },
-    });
-    const monthlyRevenue = monthlyInvoices.reduce((a, i) => a + Number(i.amount_paid), 0);
-    const monthlyTotal = monthlyInvoices.reduce((a, i) => a + Number(i.total_amount_due), 0);
+    let monthlyRevenue = 0;
+    let monthlyTotal = 0;
+    try {
+      const monthlyInvoices = await prisma.invoice.findMany({
+        where: { tenant_id: id, created_at: { gte: monthStart } },
+        select: { amount_paid: true, total_amount_due: true },
+      });
+      monthlyRevenue = monthlyInvoices.reduce((a, i) => a + Number(i.amount_paid), 0);
+      monthlyTotal = monthlyInvoices.reduce((a, i) => a + Number(i.total_amount_due), 0);
+    } catch (e: any) { console.warn(`[client/${id}] monthly invoices:`, e?.message); }
 
     // Trial info
     const trialInfo = tenant.is_trial ? {
@@ -95,7 +159,7 @@ export async function GET(
     // ── Fuel & Oil status per generator ──
     let generatorStatus: any[] = [];
     try {
-      const branchIds = tenant.branches?.map(b => b.id) || [];
+      const branchIds = (tenant.branches as any[] | undefined)?.map((b) => b.id) ?? [];
       if (branchIds.length > 0) {
         const generators = await prisma.generator.findMany({
           where: { branch_id: { in: branchIds } },
