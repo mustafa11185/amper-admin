@@ -131,6 +131,18 @@ export default function PlansPage() {
                 <Users size={11} style={{ color: plan.color }} />
                 <span>المشتركون: <strong>{fmt(plan.max_subscribers)}</strong></span>
               </div>
+              {(plan as any).max_branches != null && (
+                <div className="flex items-center gap-1.5">
+                  <Star size={11} style={{ color: plan.color }} />
+                  <span>الفروع: <strong>{fmt((plan as any).max_branches)}</strong></span>
+                </div>
+              )}
+              {(plan as any).max_staff != null && (
+                <div className="flex items-center gap-1.5">
+                  <Users size={11} style={{ color: plan.color }} />
+                  <span>الموظفون: <strong>{fmt((plan as any).max_staff)}</strong></span>
+                </div>
+              )}
               <div className="flex items-center gap-1.5">
                 <Clock size={11} style={{ color: plan.color }} />
                 <span>تجربة: <strong>{plan.trial_days} يوم</strong></span>
@@ -199,6 +211,14 @@ export default function PlansPage() {
             <tr style={{ borderBottom: "1px solid var(--border)" }}>
               <td className="p-3 text-xs" style={{ color: "var(--text-muted)" }}>المشتركون</td>
               {plans.map(p => <td key={p.id} className="p-3 text-center font-num">{fmt(p.max_subscribers)}</td>)}
+            </tr>
+            <tr style={{ borderBottom: "1px solid var(--border)" }}>
+              <td className="p-3 text-xs" style={{ color: "var(--text-muted)" }}>الفروع</td>
+              {plans.map(p => <td key={p.id} className="p-3 text-center font-num">{fmt((p as any).max_branches ?? 1)}</td>)}
+            </tr>
+            <tr style={{ borderBottom: "1px solid var(--border)" }}>
+              <td className="p-3 text-xs" style={{ color: "var(--text-muted)" }}>الموظفون</td>
+              {plans.map(p => <td key={p.id} className="p-3 text-center font-num">{fmt((p as any).max_staff ?? 1)}</td>)}
             </tr>
             {ALL_MODULES.slice(0, 10).map(mod => (
               <tr key={mod.key} style={{ borderBottom: "1px solid var(--border)" }}>

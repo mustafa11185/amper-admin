@@ -66,6 +66,87 @@ export async function GET(
       days_remaining: tenant.trial_ends_at ? Math.ceil((new Date(tenant.trial_ends_at).getTime() - Date.now()) / 86400000) : 0,
     } : null;
 
+    // ── Suppliers & Debts ──
+    let suppliers: any[] = [];
+    try {
+      const rawSuppliers = await prisma.supplier.findMany({
+        where: { tenant_id: id, is_active: true },
+        select: {
+          id: true, name: true, phone: true, supplier_type: true,
+          expenses: {
+            where: { amount_owed: { gt: 0 } },
+            select: { amount_owed: true },
+          },
+          payments: {
+            select: { amount: true },
+          },
+        },
+      });
+      suppliers = rawSuppliers.map(s => {
+        const totalOwed = s.expenses.reduce((sum, e) => sum + Number(e.amount_owed), 0);
+        const totalPaid = s.payments.reduce((sum, p) => sum + Number(p.amount), 0);
+        return {
+          id: s.id, name: s.name, phone: s.phone, type: s.supplier_type,
+          total_debt: Math.max(0, totalOwed - totalPaid),
+        };
+      });
+    } catch { /* suppliers table may not exist yet */ }
+
+    // ── Fuel & Oil status per generator ──
+    let generatorStatus: any[] = [];
+    try {
+      const branchIds = tenant.branches?.map(b => b.id) || [];
+      if (branchIds.length > 0) {
+        const generators = await prisma.generator.findMany({
+          where: { branch_id: { in: branchIds } },
+          select: {
+            id: true, name: true, fuel_level_pct: true, last_fuel_update: true,
+            tank_capacity_liters: true,
+            engines: {
+              select: {
+                id: true, name: true, last_oil_change_at: true,
+                oil_change_hours: true, runtime_hours: true, hours_at_last_oil: true,
+              },
+            },
+          },
+        });
+        generatorStatus = generators.map(g => ({
+          id: g.id,
+          name: g.name,
+          fuel_pct: g.fuel_level_pct,
+          tank_capacity: g.tank_capacity_liters,
+          last_fuel_update: g.last_fuel_update,
+          engines: g.engines.map(e => {
+            const hoursSinceOil = Number(e.runtime_hours) - Number(e.hours_at_last_oil);
+            const oilDueIn = e.oil_change_hours - hoursSinceOil;
+            return {
+              id: e.id, name: e.name,
+              last_oil_change: e.last_oil_change_at,
+              oil_hours_remaining: Math.round(oilDueIn),
+              oil_overdue: oilDueIn < 0,
+            };
+          }),
+        }));
+      }
+    } catch { /* engines table structure may differ */ }
+
+    // ── IoT devices ──
+    let iotStats = { total: 0, online: 0, offline: 0, last_telemetry: null as string | null };
+    try {
+      const devices = await prisma.iotDevice.findMany({
+        where: { generator: { branch: { tenant_id: id } } },
+        select: { is_online: true, last_seen: true, last_telemetry: true },
+      });
+      iotStats.total = devices.length;
+      iotStats.online = devices.filter(d => d.is_online).length;
+      iotStats.offline = iotStats.total - iotStats.online;
+      const latest = devices
+        .map(d => d.last_telemetry)
+        .filter(Boolean)
+        .sort((a, b) => new Date(b!).getTime() - new Date(a!).getTime())[0];
+      iotStats.last_telemetry = latest?.toISOString() ?? null;
+    } catch { /* iot_devices table may not exist */ }
+
     return NextResponse.json({
       tenant: { ...tenant, password: undefined },
       stats: {
@@ -80,6 +161,9 @@ export async function GET(
       },
       plan_change_logs: planChangeLogs,
       trial_info: trialInfo,
+      suppliers,
+      generator_status: generatorStatus,
+      iot_stats: iotStats,
     });
   } catch (error) {
     console.error("Get client error:", error);
