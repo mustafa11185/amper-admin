@@ -1255,6 +1255,9 @@ function OnboardWizard({
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [governorate, setGovernorate] = useState('');
+  const [district, setDistrict] = useState('');
+  const [neighborhood, setNeighborhood] = useState('');
+  const [landmark, setLandmark] = useState('');
   const [password, setPassword] = useState('');
 
   // Step 2: plan + coupon
@@ -1291,6 +1294,9 @@ function OnboardWizard({
           phone: phone.trim(),
           email: email.trim() || undefined,
           governorate: governorate || undefined,
+          district: district.trim() || undefined,
+          neighborhood: neighborhood.trim() || undefined,
+          landmark: landmark.trim() || undefined,
           password: password.trim() || undefined,
           plan_id: planId,
           period_months: periodMonths,
@@ -1361,12 +1367,15 @@ function OnboardWizard({
             <Field label="رقم الهاتف *" value={phone} onChange={setPhone} placeholder="07701234567" inputMode="tel" />
             <Field label="البريد (اختياري)" value={email} onChange={setEmail} placeholder="email@example.com" />
             <div>
-              <label className="block text-xs text-gray-500 mb-1">المحافظة (اختياري)</label>
+              <label className="block text-xs text-gray-500 mb-1">المحافظة</label>
               <select value={governorate} onChange={(e) => setGovernorate(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm">
                 <option value="">— اختر —</option>
                 {['بغداد', 'البصرة', 'نينوى', 'أربيل', 'النجف', 'كربلاء', 'ذي قار', 'بابل', 'ديالى', 'الأنبار', 'كركوك', 'صلاح الدين', 'واسط', 'المثنى', 'ميسان', 'القادسية', 'دهوك', 'السليمانية'].map((g) => <option key={g} value={g}>{g}</option>)}
               </select>
             </div>
+            <Field label="القضاء (اختياري)" value={district} onChange={setDistrict} placeholder="مثال: الكرخ" />
+            <Field label="الحي / المنطقة (اختياري)" value={neighborhood} onChange={setNeighborhood} placeholder="مثال: المنصور" />
+            <Field label="أقرب نقطة دالة (اختياري)" value={landmark} onChange={setLandmark} placeholder="مثال: مقابل مسجد الرحمة" />
             <Field label="كلمة المرور (اختياري — تُولَّد تلقائياً)" value={password} onChange={setPassword} placeholder="اتركها فارغة للتوليد" />
           </div>
         )}

@@ -71,6 +71,13 @@ export async function POST(req: NextRequest) {
   const phoneRaw = (body.phone || '').replace(/[\s\-()]/g, '');
   const email = (body.email || '').trim() || null;
   const governorate = (body.governorate || '').trim() || null;
+  const district = (body.district || '').trim() || null;
+  const neighborhood = (body.neighborhood || '').trim() || null;
+  const landmark = (body.landmark || '').trim() || null;
+  const branchAddress = [
+    neighborhood,
+    landmark ? `قرب: ${landmark}` : null,
+  ].filter(Boolean).join(' — ') || null;
   const passwordPlain = (body.password || '').trim() || generatePassword();
 
   if (!businessName || businessName.length < 2) return NextResponse.json({ error: 'INVALID_BUSINESS_NAME' }, { status: 400 });
@@ -174,6 +181,8 @@ export async function POST(req: NextRequest) {
         tenant_id: tenant.id,
         name: 'الفرع الرئيسي',
         governorate: governorate ?? undefined,
+        district_key: district ?? undefined,
+        address: branchAddress ?? undefined,
         is_active: true,
       },
     });
