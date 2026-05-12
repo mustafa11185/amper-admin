@@ -356,6 +356,9 @@ model Branch {
   active_gateway              String                     @default("none")
   zaincash_phone              String?
   is_online_payment_enabled   Boolean                    @default(false)
+  // Auto-round tuning, mirrors manager-app/schema.prisma.
+  auto_end_idle_mins          Int                        @default(90)
+  work_day_end_hour           Int                        @default(23)
   is_active                   Boolean                    @default(true)
   created_at                  DateTime                   @default(now())
   updated_at                  DateTime                   @updatedAt
