@@ -1,8 +1,7 @@
-export const dynamic = "force-dynamic";
 import { MapPin } from "lucide-react";
-import PlaceholderTab from "../_components/PlaceholderTab";
+import PlaceholderTab from "./PlaceholderTab";
 
-export default function RestoIqBranchesPage() {
+export default function BranchesSection() {
   return (
     <PlaceholderTab
       Icon={MapPin}

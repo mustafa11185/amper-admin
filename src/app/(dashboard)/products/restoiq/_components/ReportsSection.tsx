@@ -1,8 +1,7 @@
-export const dynamic = "force-dynamic";
 import { BarChart3 } from "lucide-react";
-import PlaceholderTab from "../_components/PlaceholderTab";
+import PlaceholderTab from "./PlaceholderTab";
 
-export default function RestoIqReportsPage() {
+export default function ReportsSection() {
   return (
     <PlaceholderTab
       Icon={BarChart3}

@@ -1,8 +1,7 @@
-export const dynamic = "force-dynamic";
 import { AlertTriangle } from "lucide-react";
-import PlaceholderTab from "../_components/PlaceholderTab";
+import PlaceholderTab from "./PlaceholderTab";
 
-export default function RestoIqHealthPage() {
+export default function HealthSection() {
   return (
     <PlaceholderTab
       Icon={AlertTriangle}

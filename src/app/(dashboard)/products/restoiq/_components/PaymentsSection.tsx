@@ -1,8 +1,7 @@
-export const dynamic = "force-dynamic";
 import { CreditCard } from "lucide-react";
-import PlaceholderTab from "../_components/PlaceholderTab";
+import PlaceholderTab from "./PlaceholderTab";
 
-export default function RestoIqPaymentsPage() {
+export default function PaymentsSection() {
   return (
     <PlaceholderTab
       Icon={CreditCard}

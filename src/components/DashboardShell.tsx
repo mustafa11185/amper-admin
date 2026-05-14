@@ -42,10 +42,12 @@ export default function DashboardShell({
         {/* Sidebar */}
         <Sidebar userRole={userRole} userName={userName} />
 
-        {/* Main Content */}
+        {/* Main Content — P-AMPER-UX (2026-05-14): sidebar is now a
+            64px hover-expand rail; only reserve 64px so the panel
+            floats over content when expanded. */}
         <div
-          className="flex-1 flex flex-col"
-          style={{ marginRight: 240 }}
+          className="flex-1 flex flex-col min-w-0"
+          style={{ marginRight: 64 }}
         >
           {/* Top Bar */}
           <header

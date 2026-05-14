@@ -1,8 +1,7 @@
-export const dynamic = "force-dynamic";
 import { MessageCircle } from "lucide-react";
-import PlaceholderTab from "../_components/PlaceholderTab";
+import PlaceholderTab from "./PlaceholderTab";
 
-export default function RestoIqWhatsappPage() {
+export default function WhatsAppSection() {
   return (
     <PlaceholderTab
       Icon={MessageCircle}

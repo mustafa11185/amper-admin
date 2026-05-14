@@ -1,8 +1,7 @@
-export const dynamic = "force-dynamic";
 import { ShoppingBag } from "lucide-react";
-import PlaceholderTab from "../_components/PlaceholderTab";
+import PlaceholderTab from "./PlaceholderTab";
 
-export default function RestoIqMarketplacePage() {
+export default function MarketplaceSection() {
   return (
     <PlaceholderTab
       Icon={ShoppingBag}
