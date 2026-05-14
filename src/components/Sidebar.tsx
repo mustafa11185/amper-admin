@@ -21,19 +21,14 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
   LayoutDashboard,
-  Users,
   Receipt,
   Ticket,
-  BarChart3,
   UserCog,
   RefreshCcw,
   ShoppingCart,
   Settings,
   LogOut,
-  Gem,
-  Banknote,
   Inbox,
-  Smartphone,
   Megaphone,
   CreditCard,
   Boxes,
@@ -41,6 +36,7 @@ import {
   FileText,
   TrendingUp,
   UtensilsCrossed,
+  Zap,
 } from "lucide-react";
 import { EndurIcon } from "./EndurLogo";
 import { signOut } from "next-auth/react";
@@ -55,24 +51,25 @@ interface NavItem {
   matchPrefixes?: string[];
 }
 
+// P-AMPER-HUB (2026-05-14) — the five Amper-specific entries
+// (Clients · Plans · Finance · Reports · App Versions) consolidated
+// into the new /products/amper hub. Their standalone routes still
+// resolve at their old URLs so bookmarks keep working; only the
+// sidebar entries are removed.
 const navItems: NavItem[] = [
   { label: "الرئيسية",          href: "/dashboard",         icon: <LayoutDashboard size={20} />, roles: ["super_admin", "sales", "support", "accountant"] },
   { label: "المنتجات",          href: "/products",          icon: <Boxes size={20} />,           roles: ["super_admin", "sales", "support", "accountant"] },
+  { label: "⚡ امبير",          href: "/products/amper",    icon: <Zap size={20} />,             roles: ["super_admin", "sales", "support", "accountant"], matchPrefixes: ["/products/amper", "/clients", "/plans", "/finance", "/reports", "/app-versions"] },
   { label: "🍴 ريستو",          href: "/products/restoiq",  icon: <UtensilsCrossed size={20} />, roles: ["super_admin", "sales", "support", "accountant"], matchPrefixes: ["/products/restoiq"] },
-  { label: "العملاء",           href: "/clients",           icon: <Users size={20} />,           roles: ["super_admin", "sales", "support"] },
   { label: "صندوق الطلبات",      href: "/leads",             icon: <Inbox size={20} />,           roles: ["super_admin", "sales"], badge: true },
-  { label: "الباقات",           href: "/plans",             icon: <Gem size={20} />,             roles: ["super_admin", "sales"] },
-  { label: "الإدارة المالية",    href: "/finance",           icon: <Banknote size={20} />,        roles: ["super_admin", "sales", "accountant"] },
   { label: "الفواتير (Amper)",  href: "/billing",           icon: <Receipt size={20} />,         roles: ["super_admin", "sales", "accountant"] },
   { label: "فواتير اندر",       href: "/endur-invoices",    icon: <FileText size={20} />,        roles: ["super_admin", "sales", "accountant"] },
   { label: "إدارة الاشتراكات",   href: "/saas-billing",      icon: <CreditCard size={20} />,      roles: ["super_admin", "sales", "accountant", "support"] },
   { label: "التذاكر",           href: "/tickets",           icon: <Ticket size={20} />,          roles: ["super_admin", "support"], badge: true },
-  { label: "التقارير (Amper)",  href: "/reports",           icon: <BarChart3 size={20} />,       roles: ["super_admin", "accountant"] },
   { label: "تقارير اندر",       href: "/endur-reports",     icon: <TrendingUp size={20} />,      roles: ["super_admin", "accountant"] },
   { label: "الفريق",            href: "/team",              icon: <UserCog size={20} />,         roles: ["super_admin"] },
   { label: "تعارضات المزامنة",   href: "/sync-conflicts",    icon: <RefreshCcw size={20} />,      roles: ["super_admin"] },
   { label: "المتجر",            href: "/store-manager",     icon: <ShoppingCart size={20} />,    roles: ["super_admin"] },
-  { label: "إصدارات التطبيقات",  href: "/app-versions",      icon: <Smartphone size={20} />,      roles: ["super_admin"] },
   { label: "الإعلانات",         href: "/announcements",     icon: <Megaphone size={20} />,       roles: ["super_admin"] },
   { label: "بيانات الشركة",      href: "/settings/company",  icon: <Building2 size={20} />,       roles: ["super_admin"] },
   { label: "الإعدادات",         href: "/settings",          icon: <Settings size={20} />,        roles: ["super_admin"] },
