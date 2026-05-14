@@ -23,6 +23,7 @@ import {
   Building2,
   FileText,
   TrendingUp,
+  UtensilsCrossed,
 } from "lucide-react";
 import { EndurIcon } from "./EndurLogo";
 import { signOut } from "next-auth/react";
@@ -46,6 +47,15 @@ const navItems: NavItem[] = [
     label: "المنتجات",
     href: "/products",
     icon: <Boxes size={20} />,
+    roles: ["super_admin", "sales", "support", "accountant"],
+  },
+  // P-MERGE-2 (2026-05-14) — direct entry into the RestoIQ product
+  // section. Mirrors the /dashboard layout in the manager web —
+  // SaaS-admin lens (aggregated across all RestoIQ tenants).
+  {
+    label: "🍴 ريستو",
+    href: "/products/restoiq",
+    icon: <UtensilsCrossed size={20} />,
     roles: ["super_admin", "sales", "support", "accountant"],
   },
   {
