@@ -19,7 +19,12 @@ import {
   Smartphone,
   Megaphone,
   CreditCard,
+  Boxes,
+  Building2,
+  FileText,
+  TrendingUp,
 } from "lucide-react";
+import { EndurIcon } from "./EndurLogo";
 import { signOut } from "next-auth/react";
 
 interface NavItem {
@@ -35,6 +40,12 @@ const navItems: NavItem[] = [
     label: "الرئيسية",
     href: "/dashboard",
     icon: <LayoutDashboard size={20} />,
+    roles: ["super_admin", "sales", "support", "accountant"],
+  },
+  {
+    label: "المنتجات",
+    href: "/products",
+    icon: <Boxes size={20} />,
     roles: ["super_admin", "sales", "support", "accountant"],
   },
   {
@@ -63,9 +74,15 @@ const navItems: NavItem[] = [
     roles: ["super_admin", "sales", "accountant"],
   },
   {
-    label: "الفواتير",
+    label: "الفواتير (Amper)",
     href: "/billing",
     icon: <Receipt size={20} />,
+    roles: ["super_admin", "sales", "accountant"],
+  },
+  {
+    label: "فواتير اندر",
+    href: "/endur-invoices",
+    icon: <FileText size={20} />,
     roles: ["super_admin", "sales", "accountant"],
   },
   {
@@ -82,9 +99,15 @@ const navItems: NavItem[] = [
     badge: true,
   },
   {
-    label: "التقارير",
+    label: "التقارير (Amper)",
     href: "/reports",
     icon: <BarChart3 size={20} />,
+    roles: ["super_admin", "accountant"],
+  },
+  {
+    label: "تقارير اندر",
+    href: "/endur-reports",
+    icon: <TrendingUp size={20} />,
     roles: ["super_admin", "accountant"],
   },
   {
@@ -118,6 +141,12 @@ const navItems: NavItem[] = [
     roles: ["super_admin"],
   },
   {
+    label: "بيانات الشركة",
+    href: "/settings/company",
+    icon: <Building2 size={20} />,
+    roles: ["super_admin"],
+  },
+  {
     label: "الإعدادات",
     href: "/settings",
     icon: <Settings size={20} />,
@@ -147,30 +176,33 @@ export default function Sidebar({ userRole, userName }: SidebarProps) {
         zIndex: 40,
       }}
     >
-      {/* Logo */}
+      {/* ENDURTECH brand header */}
       <div className="flex items-center gap-3 px-5 py-6">
-        <svg width="40" height="40" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
-          <polygon points="60,14 100,37 100,83 60,106 20,83 20,37" fill="none" stroke="#1B4FD8" strokeWidth="5" strokeLinejoin="miter"/>
-          <path d="M66,24 L50,60 L62,60 L46,96 L76,56 L62,56 Z" fill="#2D8CFF"/>
-        </svg>
-        <div>
+        <EndurIcon size={40} variant="light" />
+        <div style={{ lineHeight: 1.1 }}>
           <span
-            className="text-lg font-bold"
             style={{
-              fontFamily: "var(--font-rajdhani)",
-              color: "var(--text-primary)",
+              fontFamily: "var(--font-outfit), 'Inter', sans-serif",
+              fontWeight: 900,
+              fontSize: 18,
+              letterSpacing: "-0.02em",
             }}
           >
-            Amper
+            <span style={{ color: "var(--text-primary)" }}>ENDUR</span>
+            <span style={{ color: "var(--brand-teal)" }}>TECH</span>
           </span>
           <span
-            className="block text-xs"
+            className="block"
             style={{
-              fontFamily: "var(--font-tajawal)",
-              color: "var(--text-muted)",
+              fontFamily: "var(--font-outfit), 'Inter', sans-serif",
+              color: "var(--brand-teal)",
+              fontSize: 9,
+              letterSpacing: "0.18em",
+              fontWeight: 500,
+              marginTop: 2,
             }}
           >
-            أمبير
+            CONSOLE · IRAQ
           </span>
         </div>
       </div>

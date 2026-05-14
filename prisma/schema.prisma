@@ -2076,36 +2076,38 @@ enum CouponType {
 }
 
 model SaasCoupon {
-  id              String     @id @default(uuid())
-  code            String     @unique           // case-insensitive lookup; we store uppercase
-  description     String?
-  type            CouponType
-  amount          Int                          // % (0-100) when type=percent, IQD when type=fixed
+  id               String                 @id @default(uuid())
+  code             String                 @unique // case-insensitive lookup; we store uppercase
+  description      String?
+  type             CouponType
+  amount           Int // % (0-100) when type=percent, IQD when type=fixed
   // Optional restrictions
-  applicable_plans String[]  @default([])      // empty = all plans; else only listed plan IDs
-  min_amount      Int        @default(0)       // minimum invoice amount to qualify
+  applicable_plans String[]               @default([]) // empty = all plans; else only listed plan IDs
+  min_amount       Int                    @default(0) // minimum invoice amount to qualify
   // Usage limits
-  max_redemptions Int        @default(0)       // 0 = unlimited
-  redeemed_count  Int        @default(0)
-  expires_at      DateTime?
+  max_redemptions  Int                    @default(0) // 0 = unlimited
+  redeemed_count   Int                    @default(0)
+  expires_at       DateTime?
   // Status
-  is_active       Boolean    @default(true)
+  is_active        Boolean                @default(true)
   // Audit
-  created_by      String?    // company_user.id
-  created_at      DateTime   @default(now())
-  updated_at      DateTime   @updatedAt
-  redemptions     SaasCouponRedemption[]
+  created_by       String? // company_user.id
+  created_at       DateTime               @default(now())
+  updated_at       DateTime               @updatedAt
+  redemptions      SaasCouponRedemption[]
+
   @@map("saas_coupons")
 }
 
 model SaasCouponRedemption {
-  id           String     @id @default(uuid())
-  coupon_id    String
-  tenant_id    String
-  invoice_id   String?    // links to BillingInvoice if available
-  discount_amount Int                    // actual amount discounted in IQD
-  redeemed_at  DateTime   @default(now())
-  coupon       SaasCoupon @relation(fields: [coupon_id], references: [id], onDelete: Cascade)
+  id              String     @id @default(uuid())
+  coupon_id       String
+  tenant_id       String
+  invoice_id      String? // links to BillingInvoice if available
+  discount_amount Int // actual amount discounted in IQD
+  redeemed_at     DateTime   @default(now())
+  coupon          SaasCoupon @relation(fields: [coupon_id], references: [id], onDelete: Cascade)
+
   @@index([tenant_id, redeemed_at])
   @@map("saas_coupon_redemptions")
 }
@@ -2116,15 +2118,16 @@ model SaasCouponRedemption {
 model AmperGatewayCredentials {
   id                    String         @id @default(uuid())
   gateway               PaymentGateway @unique
-  encrypted_credentials String         // AES-256-GCM blob (same format as payment_gateway_credentials)
+  encrypted_credentials String // AES-256-GCM blob (same format as payment_gateway_credentials)
   is_test_mode          Boolean        @default(true)
   is_enabled            Boolean        @default(true)
-  display_name          String?        // optional UI label
-  last_validated_at     DateTime?      // last time test-connection succeeded
-  last_validation_error String?        // last failure message
-  updated_by            String?        // company_user.id who last edited
+  display_name          String? // optional UI label
+  last_validated_at     DateTime? // last time test-connection succeeded
+  last_validation_error String? // last failure message
+  updated_by            String? // company_user.id who last edited
   created_at            DateTime       @default(now())
   updated_at            DateTime       @updatedAt
+
   @@map("amper_gateway_credentials")
 }
 
@@ -2140,4 +2143,218 @@ model SubscriptionEvent {
   @@index([tenant_id, created_at])
   @@index([event_type, created_at])
   @@map("subscription_events")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ENDUR LAYER — Multi-product company hub (Endur Tech)
+// ─────────────────────────────────────────────────────────────────────────────
+// Sits ABOVE existing Amper-specific tables. Each product (Amper, RestoIQ,
+// BARQ) keeps its own operational data; Endur Console aggregates customers,
+// subscriptions, and invoices across all products under one company brand.
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum ProductKey {
+  AMPER
+  RESTOIQ
+  BARQ
+}
+
+enum BillingType {
+  RECURRING // monthly subscription (Amper, RestoIQ)
+  ENGAGEMENT // per-campaign / retainer (BARQ)
+}
+
+enum EndurProductStatus {
+  ACTIVE
+  COMING_SOON
+  MAINTENANCE
+  RETIRED
+}
+
+enum EndurInvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+// Registry of Endur's products (Amper, RestoIQ, BARQ, future ones).
+model Product {
+  id             String             @id @default(cuid())
+  key            ProductKey         @unique
+  name_ar        String
+  name_en        String
+  tagline_ar     String?
+  tagline_en     String?
+  description_ar String?
+  description_en String?
+  color          String             @default("#1B4FD8") // brand color
+  icon           String             @default("Box") // lucide icon name
+  status         EndurProductStatus @default(ACTIVE)
+  // Where the product's own DB lives (informational; sync via API events)
+  api_base_url   String?
+  // HMAC secret used to verify incoming webhook events from this product
+  webhook_secret String?
+  sort_order     Int                @default(0)
+  launched_at    DateTime?
+  created_at     DateTime           @default(now())
+  updated_at     DateTime           @updatedAt
+
+  customers     ProductCustomer[]
+  invoice_lines EndurInvoiceLine[]
+
+  @@map("endur_products")
+}
+
+// A unified customer of Endur Tech. May have one or many products.
+// For Amper customers, amper_tenant_id links back to the existing Tenant row.
+model EndurCustomer {
+  id              String   @id @default(uuid())
+  name            String // company / business name
+  contact_name    String? // primary contact person
+  phone           String   @unique
+  email           String?  @unique
+  governorate     String?
+  address         String?
+  notes           String?
+  // Soft-link to Amper's Tenant (NULL for RestoIQ-only or BARQ-only customers).
+  amper_tenant_id String?  @unique
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  products ProductCustomer[]
+  invoices EndurInvoice[]
+
+  @@map("endur_customers")
+}
+
+// Junction: which products each customer subscribes to, and at what level.
+model ProductCustomer {
+  id             String      @id @default(uuid())
+  customer_id    String
+  product_id     String
+  // The customer's ID inside the product's own DB
+  // (tenant_id in Amper, restaurant_id in RestoIQ, client_slug in BARQ).
+  external_ref   String
+  billing_type   BillingType
+  plan_name      String? // "gold", "basic"... only meaningful for RECURRING
+  monthly_amount Int? // IQD; NULL for ENGAGEMENT
+  status         String      @default("active") // active | trial | paused | cancelled
+  started_at     DateTime    @default(now())
+  ends_at        DateTime?
+  notes          String?
+  created_at     DateTime    @default(now())
+  updated_at     DateTime    @updatedAt
+
+  customer EndurCustomer @relation(fields: [customer_id], references: [id], onDelete: Cascade)
+  product  Product       @relation(fields: [product_id], references: [id])
+
+  @@unique([customer_id, product_id])
+  @@index([product_id, status])
+  @@map("endur_product_customers")
+}
+
+// Endur-branded company invoice. Can carry line items from multiple products.
+model EndurInvoice {
+  id                String             @id @default(cuid())
+  invoice_number    String             @unique // e.g. "END-2026-00042"
+  customer_id       String
+  issued_at         DateTime           @default(now())
+  due_at            DateTime?
+  paid_at           DateTime?
+  status            EndurInvoiceStatus @default(DRAFT)
+  // Snapshot of company info at issuance (so historical invoices stay correct
+  // even if CompanySettings later change).
+  company_snapshot  Json?
+  // Snapshot of customer billing info at issuance.
+  customer_snapshot Json?
+  subtotal          Int                @default(0)
+  tax_amount        Int                @default(0)
+  total             Int                @default(0)
+  notes             String?
+  pdf_url           String?
+  created_at        DateTime           @default(now())
+  updated_at        DateTime           @updatedAt
+
+  customer   EndurCustomer      @relation(fields: [customer_id], references: [id])
+  line_items EndurInvoiceLine[]
+
+  @@index([customer_id, issued_at])
+  @@index([status, due_at])
+  @@map("endur_invoices")
+}
+
+model EndurInvoiceLine {
+  id          String  @id @default(uuid())
+  invoice_id  String
+  product_id  String
+  description String // e.g. "Amper Gold — اشتراك شهر مايو 2026"
+  quantity    Int     @default(1)
+  unit_price  Int
+  total       Int
+  // Optional pointer to source: which product subscription/campaign this billed
+  source_ref  String?
+  sort_order  Int     @default(0)
+
+  invoice EndurInvoice @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
+  product Product      @relation(fields: [product_id], references: [id])
+
+  @@map("endur_invoice_lines")
+}
+
+// Single-row table — Endur Tech company info (rendered on every invoice/report).
+model CompanySettings {
+  id                String   @id @default(cuid())
+  name_ar           String   @default("شركة اندر للحلول التقنية")
+  name_en           String   @default("Endur Tech")
+  // Short brand for tight UI spaces (sidebar, badges) — NOT used on invoices.
+  short_name_ar     String   @default("اندر")
+  short_name_en     String   @default("ENDURTECH")
+  tagline_ar        String?  @default("منصات SaaS عراقية")
+  tagline_en        String?  @default("Iraqi SaaS Platforms")
+  registration_no   String?
+  tax_id            String?
+  address_ar        String?
+  address_en        String?
+  city              String   @default("Baghdad")
+  country           String   @default("Iraq")
+  phone             String?
+  email             String?
+  website           String?
+  logo_url          String?
+  signature_url     String?
+  // Invoice numbering (e.g. "END-2026-00042")
+  invoice_prefix    String   @default("END")
+  invoice_next_seq  Int      @default(1)
+  // Bank info shown on invoices
+  bank_name         String?
+  bank_account_no   String?
+  bank_iban         String?
+  bank_swift        String?
+  // Invoice footer note (Arabic)
+  invoice_footer_ar String?
+  invoice_footer_en String?
+  updated_at        DateTime @updatedAt
+  updated_by        String? // company_user.id who last edited
+
+  @@map("endur_company_settings")
+}
+
+// Audit log of incoming webhook events from products. Used for debugging
+// integration issues + replay if needed.
+model EndurProductEvent {
+  id           String     @id @default(uuid())
+  product_key  ProductKey
+  event_type   String // e.g. "subscription.created", "payment.received"
+  external_ref String? // tenant_id / restaurant_id / client_slug from source
+  payload      Json
+  // Set after processing; null while pending or failed
+  processed_at DateTime?
+  error        String?
+  created_at   DateTime   @default(now())
+
+  @@index([product_key, event_type, created_at])
+  @@index([processed_at])
+  @@map("endur_product_events")
 }

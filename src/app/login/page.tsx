@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 import { useActionState, useEffect } from "react";
 import { loginAction } from "./actions";
 import toast from "react-hot-toast";
+import { EndurIcon } from "@/components/EndurLogo";
 
 export default function LoginPage() {
   const [state, formAction, isPending] = useActionState(
@@ -55,56 +56,53 @@ export default function LoginPage() {
           gap: 24,
         }}
       >
-        {/* Amper Logo */}
-        <svg
-          width="48"
-          height="48"
-          viewBox="0 0 96 96"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <defs>
-            <linearGradient
-              id="hexGradient"
-              x1="8"
-              y1="4"
-              x2="88"
-              y2="92"
-              gradientUnits="userSpaceOnUse"
-            >
-              <stop offset="0%" stopColor="#7C3AED" />
-              <stop offset="100%" stopColor="#1B4FD8" />
-            </linearGradient>
-          </defs>
-          <path
-            d="M48 4L88 26V70L48 92L8 70V26L48 4Z"
-            fill="url(#hexGradient)"
-          />
-          <text
-            x="48"
-            y="58"
-            textAnchor="middle"
-            fill="#FFFFFF"
-            fontSize="32"
-            fontWeight="bold"
-            fontFamily="sans-serif"
-          >
-            A
-          </text>
-        </svg>
+        {/* ENDURTECH mark + wordmark */}
+        <EndurIcon size={56} variant="light" />
 
-        {/* Title */}
-        <h1
+        <div
           style={{
-            fontSize: 24,
-            fontWeight: 700,
-            color: "var(--text-primary)",
-            margin: 0,
-            fontFamily: "var(--font-tajawal)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 6,
           }}
         >
-          تسجيل الدخول
-        </h1>
+          <span
+            style={{
+              fontFamily: "var(--font-outfit), 'Inter', sans-serif",
+              fontWeight: 900,
+              fontSize: 26,
+              letterSpacing: "-0.02em",
+              lineHeight: 1,
+            }}
+          >
+            <span style={{ color: "var(--text-primary)" }}>ENDUR</span>
+            <span style={{ color: "var(--brand-teal)" }}>TECH</span>
+          </span>
+          <span
+            style={{
+              fontFamily: "var(--font-outfit), 'Inter', sans-serif",
+              color: "var(--brand-teal)",
+              fontSize: 10,
+              letterSpacing: "0.25em",
+              fontWeight: 500,
+            }}
+          >
+            SOLUTIONS · IRAQ · EST. 2025
+          </span>
+          <h1
+            style={{
+              fontSize: 16,
+              fontWeight: 700,
+              color: "var(--text-secondary)",
+              margin: 0,
+              marginTop: 8,
+              fontFamily: "var(--font-cairo), var(--font-tajawal), sans-serif",
+            }}
+          >
+            تسجيل الدخول · لوحة الشركة
+          </h1>
+        </div>
 
         {/* Form */}
         <form

@@ -23,13 +23,41 @@
   --success: #059669;
   --danger: #DC2626;
   --warning: #D97706;
+
+  /* ─── ENDURTECH brand v1.0 (2025) ─── */
+  --brand-cyan: #4DD8CC;       /* primary accent */
+  --brand-cyan-soft: rgba(77, 216, 204, 0.12);
+  --brand-teal: #00B4A6;       /* hover/secondary */
+  --brand-orange: #E8A020;     /* alerts only */
+  --brand-dark-bg: #0D1B2A;    /* primary dark surface */
+  --brand-darker: #080C14;     /* deepest surface */
+  --brand-light: #F0F4F8;      /* light text on dark / light theme bg */
+  --brand-border-dark: rgba(77, 216, 204, 0.18);
 }
 
 @theme inline {
   --color-background: var(--bg-base);
   --color-foreground: var(--text-primary);
-  --font-sans: var(--font-tajawal);
+  --font-sans: var(--font-cairo), var(--font-tajawal);
+  --font-display: var(--font-outfit);
   --font-mono: var(--font-jetbrains-mono);
+}
+
+/* ─── ENDURTECH brand utility classes ─── */
+.brand-wordmark {
+  font-family: var(--font-outfit), 'Inter', sans-serif;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+.brand-wordmark .accent { color: var(--brand-cyan); }
+
+.brand-surface-dark {
+  background: var(--brand-dark-bg);
+  color: var(--brand-light);
+}
+.brand-surface-darker {
+  background: var(--brand-darker);
+  color: var(--brand-light);
 }
 
 body {
