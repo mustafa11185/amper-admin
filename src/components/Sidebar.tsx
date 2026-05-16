@@ -38,6 +38,7 @@ import {
   Zap,
   Users,
   LineChart,
+  Activity,
 } from "lucide-react";
 import { EndurIcon } from "./EndurLogo";
 import { signOut } from "next-auth/react";
@@ -83,6 +84,11 @@ const navItems: NavItem[] = [
   { label: "التذاكر",           href: "/tickets",           icon: <Ticket size={20} />,          roles: ["super_admin", "support"], badge: true },
   { label: "تقارير اندر",       href: "/endur-reports",     icon: <TrendingUp size={20} />,      roles: ["super_admin", "accountant"] },
   { label: "الفريق",            href: "/team",              icon: <UserCog size={20} />,         roles: ["super_admin"] },
+  // P-CO-3.2 (2026-05-16) — Ops/SRE health umbrella (integration ·
+  // sync · tickets + ذكاء اندر triage). Cross-product company
+  // surface → top-level per the rule; complements (links to)
+  // /sync-conflicts + /tickets, does not replace them.
+  { label: "🩺 صحّة المنصّة",     href: "/endur-health",      icon: <Activity size={20} />,        roles: ["super_admin", "support"], matchPrefixes: ["/endur-health"] },
   { label: "تعارضات المزامنة",   href: "/sync-conflicts",    icon: <RefreshCcw size={20} />,      roles: ["super_admin"] },
   { label: "المتجر",            href: "/store-manager",     icon: <ShoppingCart size={20} />,    roles: ["super_admin"] },
   { label: "الإعلانات",         href: "/announcements",     icon: <Megaphone size={20} />,       roles: ["super_admin"] },
