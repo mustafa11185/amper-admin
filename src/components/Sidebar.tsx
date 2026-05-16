@@ -36,6 +36,7 @@ import {
   TrendingUp,
   UtensilsCrossed,
   Zap,
+  Users,
 } from "lucide-react";
 import { EndurIcon } from "./EndurLogo";
 import { signOut } from "next-auth/react";
@@ -60,6 +61,11 @@ const navItems: NavItem[] = [
   { label: "المنتجات",          href: "/products",          icon: <Boxes size={20} />,           roles: ["super_admin", "sales", "support", "accountant"] },
   { label: "⚡ امبير",          href: "/products/amper",    icon: <Zap size={20} />,             roles: ["super_admin", "sales", "support", "accountant"], matchPrefixes: ["/products/amper", "/clients", "/plans", "/finance", "/reports", "/app-versions"] },
   { label: "🍴 ريستو",          href: "/products/restoiq",  icon: <UtensilsCrossed size={20} />, roles: ["super_admin", "sales", "support", "accountant"], matchPrefixes: ["/products/restoiq"] },
+  // P-CO-1.2 (2026-05-16) — unified cross-product customer hub.
+  // Company-level per the Product Isolation Rule (one customer may
+  // own Amper + RestoIQ + BARQ), so it is a top-level entry, NOT a
+  // product-hub section.
+  { label: "🎯 عملاء اندر",      href: "/endur-customers",   icon: <Users size={20} />,           roles: ["super_admin", "sales", "accountant"], matchPrefixes: ["/endur-customers"] },
   { label: "صندوق الطلبات",      href: "/leads",             icon: <Inbox size={20} />,           roles: ["super_admin", "sales"], badge: true },
   // P-RULE-1 (2026-05-16) — legacy "الفواتير (Amper)" → /billing removed
   // from the sidebar. Per the Product Isolation Rule, invoices are

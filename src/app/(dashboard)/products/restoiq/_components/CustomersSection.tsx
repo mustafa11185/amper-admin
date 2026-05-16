@@ -270,31 +270,59 @@ export default function CustomersSection() {
                       </span>
                     </Td>
                     <Td>
-                      {/* P-RULE-2 (2026-05-16) — bidirectional link:
-                          this RestoIQ customer → the company invoices
-                          screen, pre-filtered to this customer and
-                          tagged RESTOIQ. */}
-                      <a
-                        href={`/endur-invoices?customer_id=${encodeURIComponent(c.customer_id)}&product=RESTOIQ`}
-                        title="فواتير اندر لهذا المطعم"
+                      {/* P-RULE-2 / P-CO-1.4 (2026-05-16) —
+                          bidirectional links: this RestoIQ customer →
+                          (a) company invoices pre-filtered + tagged
+                          RESTOIQ, (b) the unified 360° profile.
+                          customer_id == EndurCustomer.id (schema FK),
+                          so the 360 link is direct, no resolver. */}
+                      <div
                         style={{
-                          padding: "6px 10px",
-                          borderRadius: 8,
-                          background: "var(--bg-muted)",
-                          color: "var(--text-secondary)",
-                          border: "none",
-                          fontSize: 11,
-                          fontWeight: 600,
-                          cursor: "pointer",
                           display: "inline-flex",
+                          gap: 6,
                           alignItems: "center",
-                          gap: 4,
-                          textDecoration: "none",
                         }}
                       >
-                        🧾 الفاتورة
-                        <ExternalLink size={11} />
-                      </a>
+                        <a
+                          href={`/endur-customers?id=${encodeURIComponent(c.customer_id)}`}
+                          title="ملف اندر 360° لهذا المطعم"
+                          style={{
+                            padding: "6px 10px",
+                            borderRadius: 8,
+                            background: "var(--blue-soft)",
+                            color: "var(--blue-primary)",
+                            fontSize: 11,
+                            fontWeight: 600,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            textDecoration: "none",
+                          }}
+                        >
+                          👤 ملف 360°
+                        </a>
+                        <a
+                          href={`/endur-invoices?customer_id=${encodeURIComponent(c.customer_id)}&product=RESTOIQ`}
+                          title="فواتير اندر لهذا المطعم"
+                          style={{
+                            padding: "6px 10px",
+                            borderRadius: 8,
+                            background: "var(--bg-muted)",
+                            color: "var(--text-secondary)",
+                            border: "none",
+                            fontSize: 11,
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            textDecoration: "none",
+                          }}
+                        >
+                          🧾 الفاتورة
+                          <ExternalLink size={11} />
+                        </a>
+                      </div>
                     </Td>
                   </tr>
                 );

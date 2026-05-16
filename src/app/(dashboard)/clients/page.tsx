@@ -654,6 +654,30 @@ export default function ClientsPage() {
                             >
                               <Eye size={16} />
                             </button>
+                            {/* P-CO-1.4 (2026-05-16) — bidirectional
+                                link: Amper client → unified 360°
+                                profile. client.id is the Amper tenant
+                                id, so resolve via ?amper_tenant_id. */}
+                            <button
+                              onClick={() =>
+                                router.push(
+                                  `/endur-customers?amper_tenant_id=${encodeURIComponent(client.id)}`,
+                                )
+                              }
+                              className="p-1.5 rounded-lg cursor-pointer transition-colors"
+                              style={{ color: "var(--blue-primary)", fontSize: 14 }}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.background =
+                                  "var(--blue-soft)")
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.background =
+                                  "transparent")
+                              }
+                              title="ملف اندر 360° لهذا العميل"
+                            >
+                              👤
+                            </button>
                             {/* P-RULE-2 (2026-05-16) — bidirectional
                                 link: product row → company invoices,
                                 scoped to this customer + tagged AMPER. */}
