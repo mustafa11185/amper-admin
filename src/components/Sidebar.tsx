@@ -37,6 +37,7 @@ import {
   UtensilsCrossed,
   Zap,
   Users,
+  LineChart,
 } from "lucide-react";
 import { EndurIcon } from "./EndurLogo";
 import { signOut } from "next-auth/react";
@@ -66,6 +67,10 @@ const navItems: NavItem[] = [
   // own Amper + RestoIQ + BARQ), so it is a top-level entry, NOT a
   // product-hub section.
   { label: "🎯 عملاء اندر",      href: "/endur-customers",   icon: <Users size={20} />,           roles: ["super_admin", "sales", "accountant"], matchPrefixes: ["/endur-customers"] },
+  // P-CO-2.2 (2026-05-16) — forward-looking financial command
+  // (MRR/ARR · subscription movement · AR aging · exec brief).
+  // Cross-product company surface → top-level per the rule.
+  { label: "📈 النموّ والإيرادات", href: "/endur-growth",      icon: <LineChart size={20} />,       roles: ["super_admin", "sales", "accountant"], matchPrefixes: ["/endur-growth"] },
   { label: "صندوق الطلبات",      href: "/leads",             icon: <Inbox size={20} />,           roles: ["super_admin", "sales"], badge: true },
   // P-RULE-1 (2026-05-16) — legacy "الفواتير (Amper)" → /billing removed
   // from the sidebar. Per the Product Isolation Rule, invoices are
