@@ -22,6 +22,7 @@ export const AMPER_SECTIONS: AmperSectionDef[] = [
   { id: "field-ops",    label: "العمليات الميدانيّة" },
   { id: "fuel",         label: "الوقود والطاقة" },
   { id: "collections",  label: "الجباية والشركاء" },
+  { id: "collections-priority", label: "أولويّة الجباية" },
   { id: "plans",        label: "الباقات" },
   { id: "finance",      label: "الإدارة المالية" },
   { id: "reports",      label: "التقارير" },

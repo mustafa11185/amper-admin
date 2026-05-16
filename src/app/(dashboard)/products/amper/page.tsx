@@ -38,6 +38,8 @@ import AppVersionsPage from "../../app-versions/page";
 import FieldOpsSection from "./_components/FieldOpsSection";
 import FuelSection from "./_components/FuelSection";
 import CollectionsSection from "./_components/CollectionsSection";
+// P-AI-4 (2026-05-16) — ذكاء امبير collections priority.
+import CollectionsPrioritySection from "./_components/CollectionsPrioritySection";
 
 // Map section id → component. Order = render order.
 const SECTION_COMPONENTS: Record<string, React.ComponentType> = {
@@ -45,6 +47,7 @@ const SECTION_COMPONENTS: Record<string, React.ComponentType> = {
   "field-ops":    FieldOpsSection,
   fuel:           FuelSection,
   collections:    CollectionsSection,
+  "collections-priority": CollectionsPrioritySection,
   plans:          PlansPage,
   finance:        FinancePage,
   reports:        ReportsPage,
@@ -92,7 +95,7 @@ export default function AmperHubPage() {
               fontWeight: 700,
             }}
           >
-            ٨ أقسام · لوحة الشركة
+            ٩ أقسام · لوحة الشركة
           </span>
         </div>
         <h1

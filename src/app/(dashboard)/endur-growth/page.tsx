@@ -66,11 +66,15 @@ interface Brief {
   topOpportunity: { customerId: string; name: string } | null;
 }
 
+// P-AI-1 / P-AI-2 (2026-05-16) — added مساعد التسعير + كاشف الشذوذ
+// (ذكاء اندر). Index-based labels below were renumbered to match.
 const SECTIONS = [
   { id: "pulse", label: "النبض" },
   { id: "revenue", label: "الإيرادات" },
+  { id: "pricing", label: "مساعد التسعير" },
   { id: "subs", label: "الاشتراكات" },
   { id: "aging", label: "أعمار الذمم" },
+  { id: "anomalies", label: "كاشف الشذوذ" },
   { id: "brief", label: "الموجز التنفيذي" },
 ];
 
@@ -339,8 +343,13 @@ export default function EndurGrowthPage() {
                 </div>
               </Section>
 
+              {/* ── مساعد التسعير (ذكاء اندر) ── */}
+              <Section id="pricing" label={SECTIONS[2].label}>
+                <PricingPanel />
+              </Section>
+
               {/* ── الاشتراكات ── */}
-              <Section id="subs" label={SECTIONS[2].label}>
+              <Section id="subs" label={SECTIONS[3].label}>
                 <ChartCard>
                   <ResponsiveContainer width="100%" height={280}>
                     <BarChart data={data.series}>
@@ -410,7 +419,7 @@ export default function EndurGrowthPage() {
               </Section>
 
               {/* ── أعمار الذمم ── */}
-              <Section id="aging" label={SECTIONS[3].label}>
+              <Section id="aging" label={SECTIONS[4].label}>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                   {Object.entries(data.aging).map(([k, v]) => (
                     <div
@@ -513,8 +522,13 @@ export default function EndurGrowthPage() {
                 )}
               </Section>
 
+              {/* ── كاشف الشذوذ المالي (ذكاء اندر) ── */}
+              <Section id="anomalies" label={SECTIONS[5].label}>
+                <AnomaliesPanel />
+              </Section>
+
               {/* ── الموجز التنفيذي ── */}
-              <Section id="brief" label={SECTIONS[4].label} last>
+              <Section id="brief" label={SECTIONS[6].label} last>
                 <ExecBrief />
               </Section>
             </>
@@ -629,6 +643,341 @@ function ExecBrief() {
             </a>
           )}
         </ul>
+      )}
+    </div>
+  );
+}
+
+/* ── مساعد التسعير (ذكاء اندر) ─────────────────────────────────── */
+
+interface AmperPlanRow {
+  planId: string;
+  name: string;
+  listPrice: number;
+  subscribers: number;
+  mrr: number;
+  avgRealized: number;
+  discountPct: number;
+  downgradeRate: number;
+  upgradesIn: number;
+  churn: number;
+  recommendations: string[];
+}
+
+function PricingPanel() {
+  const [data, setData] = useState<{
+    amperPlans: AmperPlanRow[];
+    restoMix: Record<string, { count: number; mrr: number }>;
+  } | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/endur-ai/pricing")
+      .then((r) => r.json())
+      .then((d) => (d.error ? setErr(d.error) : setData(d)))
+      .catch((e) => setErr(String(e instanceof Error ? e.message : e)));
+  }, []);
+
+  if (err)
+    return (
+      <div
+        className="rounded-xl p-4"
+        style={{ background: "#FEF2F2", color: "#B91C1C", fontWeight: 700 }}
+      >
+        {err}
+      </div>
+    );
+  if (!data)
+    return (
+      <div style={{ display: "flex", justifyContent: "center", padding: 32 }}>
+        <Loader2
+          size={22}
+          color="var(--blue-primary)"
+          style={{ animation: "spin 1s linear infinite" }}
+        />
+      </div>
+    );
+
+  return (
+    <div
+      className="rounded-xl p-5"
+      style={{
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border)",
+      }}
+    >
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+          fontSize: 14,
+          fontWeight: 800,
+          color: "var(--text-primary)",
+          marginBottom: 12,
+        }}
+      >
+        <Sparkles size={16} color="var(--violet)" />
+        ذكاء اندر — مساعد التسعير (باقات امبير)
+      </span>
+
+      {data.amperPlans.length === 0 ? (
+        <p style={{ fontSize: 13, color: "var(--text-muted)" }}>
+          لا باقات امبير مسجّلة
+        </p>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {data.amperPlans.map((p) => (
+            <div
+              key={p.planId}
+              className="rounded-lg p-3"
+              style={{ background: "var(--bg-muted)" }}
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 800,
+                    color: "var(--text-primary)",
+                  }}
+                >
+                  {p.name}
+                </span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: "var(--text-muted)",
+                    fontFamily: "var(--font-rajdhani)",
+                  }}
+                >
+                  قائمة {iqd(p.listPrice)} · فعليّ {iqd(p.avgRealized)} ·{" "}
+                  {p.subscribers} مشترك
+                </span>
+              </div>
+              <div
+                className="flex flex-wrap gap-2 mb-2"
+                style={{ fontSize: 10, color: "var(--text-muted)" }}
+              >
+                <Tag txt={`خصم فعليّ ${p.discountPct}%`} />
+                <Tag txt={`تنزيل ${p.downgradeRate}%`} />
+                <Tag txt={`ترقيات إليها ${p.upgradesIn}`} />
+                <Tag txt={`إلغاء ${p.churn}`} />
+              </div>
+              <ul style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {p.recommendations.map((r, i) => (
+                  <li
+                    key={i}
+                    style={{
+                      fontSize: 12,
+                      color: "var(--text-secondary)",
+                      display: "flex",
+                      gap: 6,
+                    }}
+                  >
+                    <span style={{ color: "var(--violet)" }}>◆</span>
+                    {r}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {Object.keys(data.restoMix).length > 0 && (
+        <div style={{ marginTop: 14 }}>
+          <p
+            className="text-xs font-bold mb-2"
+            style={{ color: "var(--text-muted)" }}
+          >
+            مزيج باقات ريستو (لا سعر قائمة مرجعيّ — لقطة فقط)
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(data.restoMix).map(([k, v]) => (
+              <span
+                key={k}
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "4px 10px",
+                  borderRadius: 999,
+                  background: "var(--bg-muted)",
+                  color: "var(--text-secondary)",
+                }}
+              >
+                {k} · {v.count} · {iqd(v.mrr)}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Tag({ txt }: { txt: string }) {
+  return (
+    <span
+      style={{
+        fontWeight: 700,
+        padding: "2px 8px",
+        borderRadius: 999,
+        background: "var(--bg-surface)",
+        color: "var(--text-secondary)",
+      }}
+    >
+      {txt}
+    </span>
+  );
+}
+
+/* ── كاشف الشذوذ المالي (ذكاء اندر) ───────────────────────────── */
+
+interface AnomalyRow {
+  type: string;
+  label: string;
+  ref: string;
+  value: number;
+  expectedMax: number;
+  severity: "high" | "medium";
+  explanationAr: string;
+}
+
+function AnomaliesPanel() {
+  const [data, setData] = useState<{
+    summary: { total: number; high: number; byType: Record<string, number> };
+    anomalies: AnomalyRow[];
+  } | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/endur-ai/anomalies")
+      .then((r) => r.json())
+      .then((d) => (d.error ? setErr(d.error) : setData(d)))
+      .catch((e) => setErr(String(e instanceof Error ? e.message : e)));
+  }, []);
+
+  if (err)
+    return (
+      <div
+        className="rounded-xl p-4"
+        style={{ background: "#FEF2F2", color: "#B91C1C", fontWeight: 700 }}
+      >
+        {err}
+      </div>
+    );
+  if (!data)
+    return (
+      <div style={{ display: "flex", justifyContent: "center", padding: 32 }}>
+        <Loader2
+          size={22}
+          color="var(--blue-primary)"
+          style={{ animation: "spin 1s linear infinite" }}
+        />
+      </div>
+    );
+
+  return (
+    <div
+      className="rounded-xl p-5"
+      style={{
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border)",
+      }}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            fontSize: 14,
+            fontWeight: 800,
+            color: "var(--text-primary)",
+          }}
+        >
+          <Sparkles size={16} color="var(--violet)" />
+          ذكاء اندر — كاشف الشذوذ المالي
+        </span>
+        <span style={{ display: "flex", gap: 6 }}>
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              padding: "3px 10px",
+              borderRadius: 999,
+              background: "var(--bg-muted)",
+              color: "var(--text-secondary)",
+            }}
+          >
+            الكل {data.summary.total}
+          </span>
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              padding: "3px 10px",
+              borderRadius: 999,
+              background: "#FEE2E2",
+              color: "#B91C1C",
+            }}
+          >
+            مرتفع {data.summary.high}
+          </span>
+        </span>
+      </div>
+
+      {data.anomalies.length === 0 ? (
+        <p style={{ fontSize: 13, color: "var(--text-muted)" }}>
+          لا شذوذ ماليّ مرصود — المؤشّرات ضمن النطاق الإحصائي 🎉
+        </p>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {data.anomalies.map((a, i) => (
+            <div
+              key={i}
+              className="rounded-lg p-3"
+              style={{
+                background: "var(--bg-muted)",
+                borderRight: `3px solid ${a.severity === "high" ? "#B91C1C" : "#B45309"}`,
+              }}
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: "var(--text-primary)",
+                  }}
+                >
+                  {a.label} · {a.ref}
+                </span>
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    padding: "2px 8px",
+                    borderRadius: 999,
+                    background:
+                      a.severity === "high" ? "#FEE2E2" : "#FEF3C7",
+                    color: a.severity === "high" ? "#B91C1C" : "#B45309",
+                  }}
+                >
+                  {a.severity === "high" ? "مرتفع" : "متوسّط"}
+                </span>
+              </div>
+              <p
+                style={{
+                  fontSize: 12,
+                  color: "var(--text-secondary)",
+                  lineHeight: 1.7,
+                }}
+              >
+                {a.explanationAr}
+              </p>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

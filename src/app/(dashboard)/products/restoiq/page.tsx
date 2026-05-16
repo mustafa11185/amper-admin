@@ -22,6 +22,7 @@ import CustomersSection from "./_components/CustomersSection";
 // P-CO-5.2 (2026-05-16) — real product-scoped sections.
 import EconomicsSection from "./_components/EconomicsSection";
 import RiskSection from "./_components/RiskSection";
+import UpgradeSection from "./_components/UpgradeSection";
 import BranchesSection from "./_components/BranchesSection";
 import ReportsSection from "./_components/ReportsSection";
 import AiSection from "./_components/AiSection";
@@ -37,6 +38,7 @@ const SECTION_COMPONENTS: Record<string, React.ComponentType> = {
   customers:   CustomersSection,
   economics:   EconomicsSection,
   risk:        RiskSection,
+  upgrade:     UpgradeSection,
   branches:    BranchesSection,
   reports:     ReportsSection,
   ai:          AiSection,
@@ -88,7 +90,7 @@ export default function RestoIqPage() {
               fontWeight: 700,
             }}
           >
-            عدسة SaaS-Admin · ١٢ قسم
+            عدسة SaaS-Admin · ١٣ قسم
           </span>
         </div>
         <h1

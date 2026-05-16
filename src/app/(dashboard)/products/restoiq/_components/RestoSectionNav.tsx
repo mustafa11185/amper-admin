@@ -26,6 +26,7 @@ export const RESTO_SECTIONS: RestoSectionDef[] = [
   { id: "customers",   label: "المطاعم" },
   { id: "economics",   label: "اقتصاد الباقات" },
   { id: "risk",        label: "المطاعم المعرّضة" },
+  { id: "upgrade",     label: "توصيات الترقية" },
   { id: "branches",    label: "الفروع",           placeholder: true },
   { id: "reports",     label: "التقارير",         placeholder: true },
   { id: "ai",          label: "ذكاء RestoIQ" },
