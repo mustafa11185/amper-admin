@@ -19,6 +19,9 @@ export const dynamic = "force-dynamic";
 import RestoSectionNav, { RESTO_SECTIONS } from "./_components/RestoSectionNav";
 import OverviewSection from "./_components/OverviewSection";
 import CustomersSection from "./_components/CustomersSection";
+// P-CO-5.2 (2026-05-16) — real product-scoped sections.
+import EconomicsSection from "./_components/EconomicsSection";
+import RiskSection from "./_components/RiskSection";
 import BranchesSection from "./_components/BranchesSection";
 import ReportsSection from "./_components/ReportsSection";
 import AiSection from "./_components/AiSection";
@@ -32,6 +35,8 @@ import TicketsSection from "./_components/TicketsSection";
 const SECTION_COMPONENTS: Record<string, React.ComponentType> = {
   overview:    OverviewSection,
   customers:   CustomersSection,
+  economics:   EconomicsSection,
+  risk:        RiskSection,
   branches:    BranchesSection,
   reports:     ReportsSection,
   ai:          AiSection,
@@ -83,7 +88,7 @@ export default function RestoIqPage() {
               fontWeight: 700,
             }}
           >
-            عدسة SaaS-Admin · ١٠ أقسام
+            عدسة SaaS-Admin · ١٢ قسم
           </span>
         </div>
         <h1

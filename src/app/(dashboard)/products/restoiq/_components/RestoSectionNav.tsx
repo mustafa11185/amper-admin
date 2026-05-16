@@ -18,9 +18,14 @@ export interface RestoSectionDef {
   placeholder?: boolean;
 }
 
+// P-CO-5.2 (2026-05-16) — economics + risk are REAL sections
+// (derived from the Endur-side RESTOIQ subscriptions), inserted
+// after المطاعم. Product-scoped per the rule.
 export const RESTO_SECTIONS: RestoSectionDef[] = [
   { id: "overview",    label: "نظرة عامّة" },
   { id: "customers",   label: "المطاعم" },
+  { id: "economics",   label: "اقتصاد الباقات" },
+  { id: "risk",        label: "المطاعم المعرّضة" },
   { id: "branches",    label: "الفروع",           placeholder: true },
   { id: "reports",     label: "التقارير",         placeholder: true },
   { id: "ai",          label: "ذكاء RestoIQ" },
