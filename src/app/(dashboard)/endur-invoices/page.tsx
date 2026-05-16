@@ -54,18 +54,49 @@ function formatDate(iso: string | null): string {
   });
 }
 
+// P-RULE-1 (2026-05-16) — product key → its hub tab + the section
+// anchor that lists customers. Clicking a product badge on an
+// invoice row deep-links into that product's tab, carrying the
+// customer id so the product side can pre-filter.
+const PRODUCT_ROUTE: Record<string, { path: string; anchor: string; label: string }> = {
+  AMPER:   { path: "/products/amper",   anchor: "clients",   label: "امبير" },
+  RESTOIQ: { path: "/products/restoiq", anchor: "customers", label: "ريستو" },
+  BARQ:    { path: "/products/barq",    anchor: "overview",  label: "براق" },
+};
+
+function productHref(key: string, customerId: string): string {
+  const r = PRODUCT_ROUTE[key];
+  if (!r) return "/products";
+  return `${r.path}?customer=${encodeURIComponent(customerId)}#${r.anchor}`;
+}
+
 export default function EndurInvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[] | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("");
+  // P-RULE-1 — context arriving from a product tab: a customer to
+  // pre-filter on + which product launched us (for the banner copy).
+  // Read from window (client-only page) to avoid a Suspense wrapper.
+  const [ctx, setCtx] = useState<{ customerId: string; product: string | null }>({
+    customerId: "",
+    product: null,
+  });
 
   useEffect(() => {
-    const url = statusFilter
-      ? `/api/endur-invoices?status=${statusFilter}`
-      : "/api/endur-invoices";
-    fetch(url)
+    const sp = new URLSearchParams(window.location.search);
+    const cid = sp.get("customer_id") ?? "";
+    const prod = sp.get("product");
+    if (cid) setCtx({ customerId: cid, product: prod });
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (statusFilter) params.set("status", statusFilter);
+    if (ctx.customerId) params.set("customer_id", ctx.customerId);
+    const qs = params.toString();
+    fetch(`/api/endur-invoices${qs ? `?${qs}` : ""}`)
       .then((r) => r.json())
       .then((d) => setInvoices(d.invoices ?? []));
-  }, [statusFilter]);
+  }, [statusFilter, ctx.customerId]);
 
   if (!invoices) {
     return (
@@ -133,6 +164,58 @@ export default function EndurInvoicesPage() {
           فاتورة جديدة
         </Link>
       </div>
+
+      {/* P-RULE-1 — context banner when we arrived from a product tab.
+          Tells the operator the list is scoped to one customer and
+          offers a one-click way back to the full company view. */}
+      {ctx.customerId && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            padding: "12px 18px",
+            marginBottom: 18,
+            borderRadius: 12,
+            background: "var(--brand-cyan-soft, rgba(20,184,166,0.10))",
+            border: "1px solid var(--border)",
+          }}
+        >
+          <span
+            style={{
+              fontSize: 13,
+              color: "var(--text-secondary)",
+              fontWeight: 600,
+            }}
+          >
+            🔗 معروض فواتير عميل واحد
+            {ctx.product && PRODUCT_ROUTE[ctx.product]
+              ? ` — قادم من تبويبة ${PRODUCT_ROUTE[ctx.product].label}`
+              : ""}
+            {invoices ? ` · ${invoices.length} فاتورة` : ""}
+          </span>
+          <button
+            onClick={() => {
+              setCtx({ customerId: "", product: null });
+              window.history.replaceState(null, "", "/endur-invoices");
+            }}
+            style={{
+              padding: "5px 12px",
+              borderRadius: 999,
+              fontSize: 12,
+              fontWeight: 700,
+              border: "1px solid var(--border)",
+              background: "var(--bg-surface)",
+              color: "var(--brand-teal)",
+              cursor: "pointer",
+              fontFamily: "var(--font-cairo), var(--font-tajawal)",
+            }}
+          >
+            عرض كل الفواتير ✕
+          </button>
+        </div>
+      )}
 
       {/* Stats */}
       <div
@@ -260,8 +343,13 @@ export default function EndurInvoicesPage() {
                           inv.line_items.map((l) => [l.product.key, l.product])
                         ).values()
                       ).map((p) => (
-                        <span
+                        // P-RULE-1 — clickable product badge: jumps
+                        // into the product's tab, carrying this
+                        // invoice's customer for pre-filtering.
+                        <Link
                           key={p.key}
+                          href={productHref(p.key, inv.customer.id)}
+                          title={`افتح ${p.name_ar} لهذا العميل`}
                           style={{
                             fontSize: 11,
                             padding: "2px 8px",
@@ -269,10 +357,15 @@ export default function EndurInvoicesPage() {
                             background: `${p.color}1A`,
                             color: p.color,
                             fontWeight: 600,
+                            textDecoration: "none",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 3,
                           }}
                         >
                           {p.name_ar}
-                        </span>
+                          <span style={{ fontSize: 9, opacity: 0.7 }}>↗</span>
+                        </Link>
                       ))}
                     </div>
                   </Td>

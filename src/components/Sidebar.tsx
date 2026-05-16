@@ -21,7 +21,6 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
   LayoutDashboard,
-  Receipt,
   Ticket,
   UserCog,
   RefreshCcw,
@@ -62,7 +61,12 @@ const navItems: NavItem[] = [
   { label: "⚡ امبير",          href: "/products/amper",    icon: <Zap size={20} />,             roles: ["super_admin", "sales", "support", "accountant"], matchPrefixes: ["/products/amper", "/clients", "/plans", "/finance", "/reports", "/app-versions"] },
   { label: "🍴 ريستو",          href: "/products/restoiq",  icon: <UtensilsCrossed size={20} />, roles: ["super_admin", "sales", "support", "accountant"], matchPrefixes: ["/products/restoiq"] },
   { label: "صندوق الطلبات",      href: "/leads",             icon: <Inbox size={20} />,           roles: ["super_admin", "sales"], badge: true },
-  { label: "الفواتير (Amper)",  href: "/billing",           icon: <Receipt size={20} />,         roles: ["super_admin", "sales", "accountant"] },
+  // P-RULE-1 (2026-05-16) — legacy "الفواتير (Amper)" → /billing removed
+  // from the sidebar. Per the Product Isolation Rule, invoices are
+  // company-level (Endur issues them) and product-tagged, not a
+  // separate Amper-only screen. The unified "فواتير اندر" below is
+  // the single source; product context flows via deep-links. The
+  // /billing route still resolves for old bookmarks.
   { label: "فواتير اندر",       href: "/endur-invoices",    icon: <FileText size={20} />,        roles: ["super_admin", "sales", "accountant"] },
   { label: "إدارة الاشتراكات",   href: "/saas-billing",      icon: <CreditCard size={20} />,      roles: ["super_admin", "sales", "accountant", "support"] },
   { label: "التذاكر",           href: "/tickets",           icon: <Ticket size={20} />,          roles: ["super_admin", "support"], badge: true },

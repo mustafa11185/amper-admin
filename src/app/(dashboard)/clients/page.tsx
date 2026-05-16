@@ -637,22 +637,47 @@ export default function ClientsPage() {
                           {formatDate(client.created_at)}
                         </td>
                         <td className="px-4 py-3">
-                          <button
-                            onClick={() => router.push(`/clients/${client.id}`)}
-                            className="p-1.5 rounded-lg cursor-pointer transition-colors"
-                            style={{ color: "var(--blue-primary)" }}
-                            onMouseEnter={(e) =>
-                              (e.currentTarget.style.background =
-                                "var(--blue-soft)")
-                            }
-                            onMouseLeave={(e) =>
-                              (e.currentTarget.style.background =
-                                "transparent")
-                            }
-                            title="عرض التفاصيل"
-                          >
-                            <Eye size={16} />
-                          </button>
+                          <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                            <button
+                              onClick={() => router.push(`/clients/${client.id}`)}
+                              className="p-1.5 rounded-lg cursor-pointer transition-colors"
+                              style={{ color: "var(--blue-primary)" }}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.background =
+                                  "var(--blue-soft)")
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.background =
+                                  "transparent")
+                              }
+                              title="عرض التفاصيل"
+                            >
+                              <Eye size={16} />
+                            </button>
+                            {/* P-RULE-2 (2026-05-16) — bidirectional
+                                link: product row → company invoices,
+                                scoped to this customer + tagged AMPER. */}
+                            <button
+                              onClick={() =>
+                                router.push(
+                                  `/endur-invoices?customer_id=${encodeURIComponent(client.id)}&product=AMPER`,
+                                )
+                              }
+                              className="p-1.5 rounded-lg cursor-pointer transition-colors"
+                              style={{ color: "var(--text-muted)", fontSize: 14 }}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.background =
+                                  "var(--bg-muted)")
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.background =
+                                  "transparent")
+                              }
+                              title="فواتير اندر لهذا العميل"
+                            >
+                              🧾
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );

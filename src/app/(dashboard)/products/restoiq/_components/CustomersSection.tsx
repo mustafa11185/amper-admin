@@ -270,26 +270,31 @@ export default function CustomersSection() {
                       </span>
                     </Td>
                     <Td>
-                      <button
-                        disabled
-                        title="سيُفعَّل في P-MERGE-3"
+                      {/* P-RULE-2 (2026-05-16) — bidirectional link:
+                          this RestoIQ customer → the company invoices
+                          screen, pre-filtered to this customer and
+                          tagged RESTOIQ. */}
+                      <a
+                        href={`/endur-invoices?customer_id=${encodeURIComponent(c.customer_id)}&product=RESTOIQ`}
+                        title="فواتير اندر لهذا المطعم"
                         style={{
                           padding: "6px 10px",
                           borderRadius: 8,
                           background: "var(--bg-muted)",
-                          color: "var(--text-muted)",
+                          color: "var(--text-secondary)",
                           border: "none",
                           fontSize: 11,
                           fontWeight: 600,
-                          cursor: "not-allowed",
+                          cursor: "pointer",
                           display: "inline-flex",
                           alignItems: "center",
                           gap: 4,
+                          textDecoration: "none",
                         }}
                       >
-                        <ExternalLink size={12} />
-                        فتح
-                      </button>
+                        🧾 الفاتورة
+                        <ExternalLink size={11} />
+                      </a>
                     </Td>
                   </tr>
                 );
