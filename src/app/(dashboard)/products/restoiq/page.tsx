@@ -110,11 +110,14 @@ export default function RestoIqPage() {
         </p>
       </header>
 
-      {/* Two-column grid: side nav + content stream. */}
+      {/* Two-column grid: side nav + content stream.
+          P-FIX-1: gap tightened 28→20, section heading simplified to
+          a single h2 (no numbered badge) to match the RestoIQ
+          manager web's /manage compact SectionShell. */}
       <div
         style={{
           display: "flex",
-          gap: 28,
+          gap: 20,
           alignItems: "flex-start",
         }}
       >
@@ -129,51 +132,20 @@ export default function RestoIqPage() {
                 key={s.id}
                 id={s.id}
                 style={{
-                  // scroll-margin-top accounts for the sticky top bar
-                  // in DashboardShell when the user clicks a nav item.
                   scrollMarginTop: 80,
                   marginBottom: i === RESTO_SECTIONS.length - 1 ? 0 : 40,
                 }}
               >
-                {/* Section heading lockup — matches the manager web's
-                    pattern: numbered badge + Arabic title. */}
-                <div
+                <h2
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    marginBottom: 16,
+                    fontSize: 18,
+                    fontWeight: 800,
+                    color: "var(--text-primary)",
+                    marginBottom: 12,
                   }}
                 >
-                  <div
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 10,
-                      background:
-                        "linear-gradient(135deg, var(--blue-primary), #4F46E5)",
-                      color: "#FFFFFF",
-                      fontSize: 13,
-                      fontWeight: 800,
-                      fontFamily: "var(--font-rajdhani)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      letterSpacing: "0.05em",
-                    }}
-                  >
-                    {String(i + 1).padStart(2, "0")}
-                  </div>
-                  <h2
-                    style={{
-                      fontSize: 18,
-                      fontWeight: 800,
-                      color: "var(--text-primary)",
-                    }}
-                  >
-                    {s.label}
-                  </h2>
-                </div>
+                  {s.label}
+                </h2>
                 <Component />
               </section>
             );

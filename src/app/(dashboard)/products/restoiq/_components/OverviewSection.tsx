@@ -46,18 +46,42 @@ function formatIQD(n: number): string {
   return new Intl.NumberFormat("ar-IQ").format(n) + " د.ع";
 }
 
-export default function RestoIqOverviewPage() {
+export default function OverviewSection() {
   const [data, setData] = useState<Overview | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // P-FIX-1: tolerate empty / non-JSON responses. The previous
+    // .then((r) => r.json()) crashed with "Unexpected end of JSON
+    // input" when a server-side handler died mid-stream.
     fetch("/api/restoiq/overview")
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.error) setError(d.error);
-        else setData(d);
+      .then(async (r) => {
+        const text = await r.text();
+        let parsed: unknown = null;
+        if (text) {
+          try {
+            parsed = JSON.parse(text);
+          } catch {
+            setError(`الخادم أعاد ردّاً غير صالح (HTTP ${r.status})`);
+            return;
+          }
+        }
+        if (!r.ok) {
+          const p = parsed as { error?: string; detail?: string } | null;
+          const msg = p?.error ?? `HTTP ${r.status}`;
+          setError(p?.detail ? `${msg} — ${p.detail}` : msg);
+          return;
+        }
+        const p = parsed as (Overview & { note?: string }) | null;
+        if (!p) {
+          setError("استجابة فارغة من الخادم");
+          return;
+        }
+        setData(p);
       })
-      .catch((e) => setError(String(e)));
+      .catch((e) =>
+        setError(String(e instanceof Error ? e.message : e)),
+      );
   }, []);
 
   if (error) {

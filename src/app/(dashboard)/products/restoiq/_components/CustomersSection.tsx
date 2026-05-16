@@ -44,20 +44,40 @@ function formatIQD(n: number | null): string {
   return new Intl.NumberFormat("ar-IQ").format(n) + " د.ع";
 }
 
-export default function RestoIqCustomersPage() {
+export default function CustomersSection() {
   const [rows, setRows] = useState<Customer[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   useEffect(() => {
+    // P-FIX-1: tolerate empty / non-JSON responses. The previous
+    // .then((r) => r.json()) crashed with "Unexpected end of JSON
+    // input" when a server-side handler died mid-stream.
     fetch("/api/restoiq/customers")
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.error) setError(d.error);
-        else setRows(d.customers ?? []);
+      .then(async (r) => {
+        const text = await r.text();
+        let parsed: unknown = null;
+        if (text) {
+          try {
+            parsed = JSON.parse(text);
+          } catch {
+            setError(`الخادم أعاد ردّاً غير صالح (HTTP ${r.status})`);
+            return;
+          }
+        }
+        if (!r.ok) {
+          const p = parsed as { error?: string; detail?: string } | null;
+          const msg = p?.error ?? `HTTP ${r.status}`;
+          setError(p?.detail ? `${msg} — ${p.detail}` : msg);
+          return;
+        }
+        const p = parsed as { customers?: Customer[] } | null;
+        setRows(p?.customers ?? []);
       })
-      .catch((e) => setError(String(e)));
+      .catch((e) =>
+        setError(String(e instanceof Error ? e.message : e)),
+      );
   }, []);
 
   const filtered = useMemo(() => {

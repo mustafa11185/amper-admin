@@ -112,11 +112,14 @@ export default function AmperHubPage() {
         </p>
       </header>
 
-      {/* Two-column grid: side nav + content stream. */}
+      {/* Two-column grid: side nav + content stream.
+          P-FIX-1: gap tightened 28→20, section heading simplified to
+          a single h2 to match the RestoIQ manager web's compact
+          SectionShell. */}
       <div
         style={{
           display: "flex",
-          gap: 28,
+          gap: 20,
           alignItems: "flex-start",
         }}
       >
@@ -135,49 +138,20 @@ export default function AmperHubPage() {
                   marginBottom: i === AMPER_SECTIONS.length - 1 ? 0 : 40,
                 }}
               >
-                {/* Section heading lockup */}
-                <div
+                <h2
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    marginBottom: 16,
+                    fontSize: 18,
+                    fontWeight: 800,
+                    color: "var(--text-primary)",
+                    marginBottom: 12,
                   }}
                 >
-                  <div
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 10,
-                      background: "linear-gradient(135deg, #F59E0B, #D97706)",
-                      color: "#FFFFFF",
-                      fontSize: 13,
-                      fontWeight: 800,
-                      fontFamily: "var(--font-rajdhani)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      letterSpacing: "0.05em",
-                    }}
-                  >
-                    {String(i + 1).padStart(2, "0")}
-                  </div>
-                  <h2
-                    style={{
-                      fontSize: 18,
-                      fontWeight: 800,
-                      color: "var(--text-primary)",
-                    }}
-                  >
-                    {s.label}
-                  </h2>
-                </div>
+                  {s.label}
+                </h2>
 
                 {/* The imported page component renders its own
                     padding + max-width. We let it; the section
-                    wrapper just adds the anchor + heading.
-                    Visually consistent because each page already
-                    follows the same Endur Console patterns. */}
+                    wrapper just adds the anchor + heading. */}
                 <Component />
               </section>
             );
