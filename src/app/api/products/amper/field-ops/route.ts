@@ -17,6 +17,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { withGuard } from "@/lib/api-route";
 
 const num = (d: unknown): number => Number(d ?? 0);
 
@@ -27,7 +28,7 @@ function bandOf(ratio: number): Band {
   return "ok";
 }
 
-export async function GET() {
+async function GET_() {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -265,3 +266,5 @@ export async function GET() {
     },
   });
 }
+
+export const GET = withGuard("amper-field-ops", GET_);

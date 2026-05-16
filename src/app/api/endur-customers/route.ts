@@ -2,12 +2,13 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { withGuard } from "@/lib/api-route";
 import {
   computeCustomerMetrics,
   type RiskBand,
 } from "@/lib/endur-customer-metrics";
 
-export async function GET(req: NextRequest) {
+async function GET_(req: NextRequest) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -147,3 +148,5 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+export const GET = withGuard("endur-customers", GET_);

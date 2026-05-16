@@ -17,6 +17,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { withGuard } from "@/lib/api-route";
 
 const H24 = 24 * 60 * 60 * 1000;
 const H72 = 72 * 60 * 60 * 1000;
@@ -27,7 +28,7 @@ function band(score: number): "healthy" | "attention" | "critical" {
   return "critical";
 }
 
-export async function GET() {
+async function GET_() {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -179,3 +180,5 @@ export async function GET() {
     },
   });
 }
+
+export const GET = withGuard("endur-health", GET_);

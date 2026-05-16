@@ -13,6 +13,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { withGuard } from "@/lib/api-route";
 import { computeCustomerMetrics } from "@/lib/endur-customer-metrics";
 import { crossSellForCustomer } from "@/lib/endur-cross-sell";
 
@@ -22,7 +23,7 @@ function iqd(n: number): string {
   return new Intl.NumberFormat("ar-IQ").format(Math.round(n)) + " د.ع";
 }
 
-export async function GET() {
+async function GET_() {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -151,3 +152,5 @@ export async function GET() {
     topOpportunity: topOpp ?? null,
   });
 }
+
+export const GET = withGuard("endur-ai-exec-brief", GET_);

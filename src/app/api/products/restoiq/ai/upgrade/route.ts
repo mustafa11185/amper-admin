@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { withGuard } from "@/lib/api-route";
 
 const DAY_MS = 86_400_000;
 
@@ -23,7 +24,7 @@ function nextTier(plan: string | null): string | null {
   return null; // already top (برو) → no upgrade, only add-ons
 }
 
-export async function GET() {
+async function GET_() {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -120,3 +121,5 @@ export async function GET() {
     recommendations: recommendations.slice(0, 40),
   });
 }
+
+export const GET = withGuard("restoiq-ai-upgrade", GET_);

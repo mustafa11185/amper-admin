@@ -12,6 +12,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { withGuard } from "@/lib/api-route";
 import { computeCustomerMetrics } from "@/lib/endur-customer-metrics";
 import {
   crossSellForCustomer,
@@ -56,7 +57,7 @@ function metricsOf(c: {
   });
 }
 
-export async function GET(req: NextRequest) {
+async function GET_(req: NextRequest) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -144,3 +145,5 @@ export async function GET(req: NextRequest) {
     top: items.slice(0, 25),
   });
 }
+
+export const GET = withGuard("endur-ai-cross-sell", GET_);

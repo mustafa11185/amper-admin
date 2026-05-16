@@ -14,10 +14,11 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { withGuard } from "@/lib/api-route";
 
 const DAY_MS = 86_400_000;
 
-export async function GET() {
+async function GET_() {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -168,3 +169,5 @@ export async function GET() {
     },
   });
 }
+
+export const GET = withGuard("restoiq-economics", GET_);

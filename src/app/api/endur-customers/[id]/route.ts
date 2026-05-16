@@ -11,6 +11,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { withGuard } from "@/lib/api-route";
 import { computeCustomerMetrics } from "@/lib/endur-customer-metrics";
 
 interface TimelineItem {
@@ -20,7 +21,7 @@ interface TimelineItem {
   meta?: string;
 }
 
-export async function GET(
+async function GET_(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -156,3 +157,5 @@ export async function GET(
     timeline: timeline.slice(0, 80),
   });
 }
+
+export const GET = withGuard("endur-customer-360", GET_);

@@ -13,6 +13,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { withGuard } from "@/lib/api-route";
 
 type Severity = "critical" | "high" | "normal";
 type SlaRisk = "breached" | "at_risk" | "ok";
@@ -105,7 +106,7 @@ function suggestedReply(
   return `مرحباً ${who} 👋 شكراً لتواصلكم مع دعم اندر. سجّلنا طلبكم وسيتابعه الفريق المختص. إذا توفّرت تفاصيل إضافيّة (صورة/خطوات) ترسلونها تساعدنا نسرّع الحلّ.`;
 }
 
-export async function GET() {
+async function GET_() {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -171,3 +172,5 @@ export async function GET() {
 
   return NextResponse.json({ summary, tickets: triaged.slice(0, 50) });
 }
+
+export const GET = withGuard("endur-ai-ticket-triage", GET_);

@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { withGuard } from "@/lib/api-route";
 
 const num = (d: unknown) => Number(d ?? 0);
 
@@ -36,7 +37,7 @@ function iqd(n: number) {
   return new Intl.NumberFormat("ar-IQ").format(Math.round(n)) + " د.ع";
 }
 
-export async function GET() {
+async function GET_() {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -170,3 +171,5 @@ export async function GET() {
     anomalies: anomalies.slice(0, 40),
   });
 }
+
+export const GET = withGuard("endur-ai-anomalies", GET_);
