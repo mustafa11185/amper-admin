@@ -252,6 +252,11 @@ model StoreProduct {
   description      String?
   price_usd        Decimal      @db.Decimal(10, 2)
   category         String
+  // Which Endur product line this device serves: "amper" | "restoiq"
+  // | "general" (general = cross-product / shared accessory). Drives
+  // the المتجر hub sections (P-STORE, 2026-05-16). Plain String, not
+  // an enum, so adding a new product line never needs a migration.
+  product_line     String       @default("general")
   stock            Int          @default(0)
   is_active        Boolean      @default(true)
   sort_order       Int          @default(0)

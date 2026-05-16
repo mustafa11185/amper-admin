@@ -12,11 +12,15 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category") || "";
+    const product_line = searchParams.get("product_line") || "";
     const is_active = searchParams.get("is_active");
 
     const where: any = {};
     if (category) {
       where.category = category;
+    }
+    if (product_line) {
+      where.product_line = product_line;
     }
     if (is_active === "true") {
       where.is_active = true;
@@ -56,6 +60,7 @@ export async function POST(request: NextRequest) {
       description,
       price_usd,
       category,
+      product_line,
       stock,
       sort_order,
       discount_pct,
@@ -76,6 +81,7 @@ export async function POST(request: NextRequest) {
         description: description || null,
         price_usd,
         category,
+        product_line: product_line || "general",
         stock: stock ?? 0,
         sort_order: sort_order ?? 0,
         discount_pct: discount_pct ?? null,
@@ -127,6 +133,8 @@ export async function PUT(request: NextRequest) {
       updateData.description = data.description;
     if (data.price_usd !== undefined) updateData.price_usd = data.price_usd;
     if (data.category !== undefined) updateData.category = data.category;
+    if (data.product_line !== undefined)
+      updateData.product_line = data.product_line;
     if (data.stock !== undefined) updateData.stock = data.stock;
     if (data.is_active !== undefined) updateData.is_active = data.is_active;
     if (data.sort_order !== undefined) updateData.sort_order = data.sort_order;
