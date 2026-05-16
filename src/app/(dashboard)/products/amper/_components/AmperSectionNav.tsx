@@ -15,8 +15,13 @@ export interface AmperSectionDef {
   label: string;
 }
 
+// P-CO-4.2 (2026-05-16) — three field-ops sections added after
+// العملاء (operational priority). Product-scoped per the rule.
 export const AMPER_SECTIONS: AmperSectionDef[] = [
   { id: "clients",      label: "العملاء" },
+  { id: "field-ops",    label: "العمليات الميدانيّة" },
+  { id: "fuel",         label: "الوقود والطاقة" },
+  { id: "collections",  label: "الجباية والشركاء" },
   { id: "plans",        label: "الباقات" },
   { id: "finance",      label: "الإدارة المالية" },
   { id: "reports",      label: "التقارير" },

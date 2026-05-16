@@ -34,10 +34,17 @@ import PlansPage from "../../plans/page";
 import FinancePage from "../../finance/page";
 import ReportsPage from "../../reports/page";
 import AppVersionsPage from "../../app-versions/page";
+// P-CO-4.2 (2026-05-16) — field-ops sections (product-scoped).
+import FieldOpsSection from "./_components/FieldOpsSection";
+import FuelSection from "./_components/FuelSection";
+import CollectionsSection from "./_components/CollectionsSection";
 
 // Map section id → component. Order = render order.
 const SECTION_COMPONENTS: Record<string, React.ComponentType> = {
   clients:        ClientsPage,
+  "field-ops":    FieldOpsSection,
+  fuel:           FuelSection,
+  collections:    CollectionsSection,
   plans:          PlansPage,
   finance:        FinancePage,
   reports:        ReportsPage,
@@ -85,7 +92,7 @@ export default function AmperHubPage() {
               fontWeight: 700,
             }}
           >
-            ٥ أقسام · لوحة الشركة
+            ٨ أقسام · لوحة الشركة
           </span>
         </div>
         <h1
